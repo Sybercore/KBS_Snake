@@ -16,3 +16,7 @@ Snake_bsp/obj/alt_sys_init.d
 *.objdump
 *.elf
 *.map
+C-code/Makefile
+*.S
+C-code/create-this-app
+*.txt
