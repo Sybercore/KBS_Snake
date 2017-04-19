@@ -145,65 +145,66 @@ void task4(void* pdata) {
 }*/
 
 /* The main function creates two task and starts multi-tasking */
-int main(void) {
-	OSInit();
+//int main(void) {
+//	OSInit();
+//
+//	int err = ALT_SEM_CREATE(&sem, 1);
+//	if (err != 0)
+//		printf("Semaphore NOT created\n");
+//
+//	vgapixel = alt_up_pixel_buffer_dma_open_dev("/dev/VGA_Subsystem_VGA_Pixel_DMA");		//open pixel buffer
+//	if (vgapixel == NULL) {
+//		printf("Error: could not open VGA_Pixel_Buffer device\n");
+//		return -1;
+//	}
+//	else
+//		printf("Opened VGA_Pixel_Buffer device\n");
+//
+//	alt_up_pixel_buffer_dma_clear_screen(vgapixel, WHITE);							//clear screen
+//
+//	vgachar = alt_up_video_dma_open_dev("/dev/VGA_Subsystem_Char_Buf_Subsystem_Char_Buf_DMA");				//open char buffer
+//	if (vgachar == NULL) {
+//		printf("Error: could not open VGA_Char_Buffer device\n");
+//		return -1;
+//	}
+//	else
+//		printf("Opened VGA_Char_Buffer device\n");
+//
+//	alt_up_video_dma_screen_clear(vgachar, WHITE);											//clear buffer
+//
+//
+//	/* output text message to the LCD */
+//	ALT_SEM_PEND(sem, 0);
+//
+//	lcd_dev = alt_up_character_lcd_open_dev("/dev/Char_LCD_16x2");
+//	if (lcd_dev == NULL) {
+//		printf("Error: could not open character LCD device\n");
+//		return -1;
+//	} else
+//		printf("Opened character LCD device\n");
+//	ALT_SEM_POST(sem);
+//
+//	//red_LEDs_dev = alt_up_parallel_port_open_dev("/dev/Red_LEDs");
+//	//green_LEDs_dev = alt_up_parallel_port_open_dev("/dev/Green_LEDs");
+//	//slider_switches_dev = alt_up_parallel_port_open_dev("/dev/Slider_Switches");
+//
+//	//hex3_hex0_dev = alt_up_parallel_port_open_dev("/dev/HEX3_HEX0");
+//	//hex7_hex4_dev = alt_up_parallel_port_open_dev("/dev/HEX7_HEX4");
+//
+//	OSTaskCreateExt(task1, NULL, (void *) &task1_stk[TASK_STACKSIZE - 1],
+//		TASK1_PRIORITY, TASK1_PRIORITY, task1_stk, TASK_STACKSIZE, NULL, 0);
+//
+//	//OSTaskCreateExt(task2, NULL, (void *) &task2_stk[TASK_STACKSIZE - 1],
+//	//		TASK2_PRIORITY, TASK2_PRIORITY, task2_stk, TASK_STACKSIZE, NULL, 0);
+//
+//	//OSTaskCreateExt(task3, NULL, (void *) &task3_stk[TASK_STACKSIZE - 1],
+//	//		TASK3_PRIORITY, TASK3_PRIORITY, task3_stk, TASK_STACKSIZE, NULL, 0);
+//
+//	//OSTaskCreateExt(task4, NULL, (void *) &task4_stk[TASK_STACKSIZE - 1],
+//	//		TASK4_PRIORITY, TASK4_PRIORITY, task4_stk, TASK_STACKSIZE, NULL, 0);
+//
+//	OSStart();
+//	return 0;
+//}
 
-	int err = ALT_SEM_CREATE(&sem, 1);
-	if (err != 0)
-		printf("Semaphore NOT created\n");
-
-	vgapixel = alt_up_pixel_buffer_dma_open_dev("/dev/VGA_Subsystem_VGA_Pixel_DMA");		//open pixel buffer
-	if (vgapixel == NULL) {
-		printf("Error: could not open VGA_Pixel_Buffer device\n");
-		return -1;
-	}
-	else
-		printf("Opened VGA_Pixel_Buffer device\n");
-
-	alt_up_pixel_buffer_dma_clear_screen(vgapixel, WHITE);							//clear screen
-
-	vgachar = alt_up_video_dma_open_dev("/dev/VGA_Subsystem_Char_Buf_Subsystem_Char_Buf_DMA");				//open char buffer
-	if (vgachar == NULL) {
-		printf("Error: could not open VGA_Char_Buffer device\n");
-		return -1;
-	}
-	else
-		printf("Opened VGA_Char_Buffer device\n");
-
-	alt_up_video_dma_screen_clear(vgachar, WHITE);											//clear buffer
-
-
-	/* output text message to the LCD */
-	ALT_SEM_PEND(sem, 0);
-
-	lcd_dev = alt_up_character_lcd_open_dev("/dev/Char_LCD_16x2");
-	if (lcd_dev == NULL) {
-		printf("Error: could not open character LCD device\n");
-		return -1;
-	} else
-		printf("Opened character LCD device\n");
-	ALT_SEM_POST(sem);
-
-	//red_LEDs_dev = alt_up_parallel_port_open_dev("/dev/Red_LEDs");
-	//green_LEDs_dev = alt_up_parallel_port_open_dev("/dev/Green_LEDs");
-	//slider_switches_dev = alt_up_parallel_port_open_dev("/dev/Slider_Switches");
-
-	//hex3_hex0_dev = alt_up_parallel_port_open_dev("/dev/HEX3_HEX0");
-	//hex7_hex4_dev = alt_up_parallel_port_open_dev("/dev/HEX7_HEX4");
-
-	OSTaskCreateExt(task1, NULL, (void *) &task1_stk[TASK_STACKSIZE - 1],
-		TASK1_PRIORITY, TASK1_PRIORITY, task1_stk, TASK_STACKSIZE, NULL, 0);
-
-	//OSTaskCreateExt(task2, NULL, (void *) &task2_stk[TASK_STACKSIZE - 1],
-	//		TASK2_PRIORITY, TASK2_PRIORITY, task2_stk, TASK_STACKSIZE, NULL, 0);
-
-	//OSTaskCreateExt(task3, NULL, (void *) &task3_stk[TASK_STACKSIZE - 1],
-	//		TASK3_PRIORITY, TASK3_PRIORITY, task3_stk, TASK_STACKSIZE, NULL, 0);
-
-	//OSTaskCreateExt(task4, NULL, (void *) &task4_stk[TASK_STACKSIZE - 1],
-	//		TASK4_PRIORITY, TASK4_PRIORITY, task4_stk, TASK_STACKSIZE, NULL, 0);
-
-	OSStart();
-	return 0;
-}
 
