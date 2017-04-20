@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "includes.h"
+#include <altera_up_avalon_ps2.h>
 
 /* Definition of Task Stacks */
 #define   TASK_STACKSIZE       2048
@@ -14,8 +15,8 @@ void read_keyboard(void* pdata);
 void read_keyboard(void* pdata)
 {
 	volatile int * PS2_ptr = (int *) 0x10000100;
-	int PS2_data, RVALID;
-	int byte = 0;
+	int PS2_data, RVALID, RAVAIL;
+	int byte = 0, bytehulp1 =0, bytehulp2 = 0;
 	char key;
   while (1)
   {
@@ -23,6 +24,8 @@ void read_keyboard(void* pdata)
     RVALID = PS2_data & 0x8000;
     if (RVALID){
     	byte = PS2_data & 0xFF;
+    	bytehulp1 = PS2_data & 0xFF;
+    	bytehulp2 = PS2_data & 0xFF;
     	printf ("key: %d", byte);
     	switch(byte)
     	{
