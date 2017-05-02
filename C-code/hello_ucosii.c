@@ -68,7 +68,7 @@ void readKeyboard(void* pdata)
     RVALID = PS2_data & 0x8000;
     if (RVALID){
     	byte = PS2_data & 0xFF;
-    	printf ("key: %d", byte);
+    	printf ("key: %d", byte); // testing
     	if (i->id == 1){
     	switch(byte)
     	{
