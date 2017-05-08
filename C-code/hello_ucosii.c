@@ -17,6 +17,7 @@ OS_STK MoveSnake_stk[2][TASK_STACKSIZE];
 OS_STK BorderCheck_stk[2][TASK_STACKSIZE];
 OS_STK GameOver_stk[TASK_STACKSIZE];
 OS_STK MainMenu_stk[TASK_STACKSIZE];
+OS_STK GenerateApple_stk[TASK_STACKSIZE];
 
 /* Definition of Task Priorities */
 #define READ_KEYBOARD_PRIORITY  4
@@ -25,6 +26,7 @@ OS_STK MainMenu_stk[TASK_STACKSIZE];
 #define BORDER_CHECK_PRIORITY	6
 #define GAME_OVER_PRIORITY		3
 #define MAIN_MENU_PRIORITY		1
+#define GENERATE_APPLE_PRIORITY  10
 
 /* Other difine's */
 #define WHITE				0xFFFF
@@ -45,6 +47,7 @@ char text_top_row[40] = "-Snake-\0";
 
 /* Snake struct */
 typedef struct snakelist *snake;
+typedef struct applelocation apple;
 
 struct snakelist{
 	int id;
@@ -53,9 +56,15 @@ struct snakelist{
 	struct snake1 *next;
 };
 
+struct applelocation{
+	int x;
+	int y;
+};
+
 /* Variables */
 snake s1;
 snake s2;
+apple a;
 char  directions1 = 0;
 char  directions2 = 0;
 
@@ -66,6 +75,7 @@ void MoveSnake(void* the_snake);
 void BorderCheck(void* the_snake);
 void GameOver(void* pdata);
 void MainMenu(void* pdata);
+void GenerateApple(void* pdata);
 snake CreateSnake(int id);
 //snake AddsnakePart(snake head, int id, int x, int y);
 
@@ -473,6 +483,23 @@ void MainMenu(void* pdata){
 	}
 }
 
+
+void GenerateApple(void* pdata){
+	srand(time());
+	int yLocation = rand() % 28;
+	srand(time());
+	int xLocation = rand()% 28;
+
+// if apple is eaten
+	a->x =  51+(xLocation*8);
+	a->y =  9+(yLocation*8);
+	alt_up_pixel_buffer_dma_draw_box(vgapixel,51+(xLocation*8),9+(yLocation*8),57+(xLocation*8),15+(yLocation*8),0xf000,0xf000);
+// else
+	//do nothing;
+
+	OSTimeDlyHMSM(0,0,0,200);
+}
+
 /* The main function creates tasks and starts multi-tasking */
 int main(void){
 	OSInit();
@@ -586,6 +613,16 @@ int main(void){
 	        TASK_STACKSIZE,
 	        NULL,
 	        0);
+
+	  OSTaskCreateExt(GenerateApple,
+	  	        NULL,
+	  	        (void *)&GenerateApple_stk[TASK_STACKSIZE-1],
+	  	        GENERATE_APPLE_PRIORITY,
+	  	        GENERATE_APPLE_PRIORITY,
+	  	        GenerateApple_stk,
+	  	        TASK_STACKSIZE,
+	  	        NULL,
+	  	        0);
 
 	/*
 	  OSTaskCreateExt(MainMenu,
