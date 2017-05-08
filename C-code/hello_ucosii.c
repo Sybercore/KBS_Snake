@@ -368,14 +368,12 @@ void MoveSnake(void* the_snake){
 				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y,s->x+6,s->y+6,0x0000,0x0000);
 				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y+8,s->x+6,s->y+14,0xf000,0xf000);
 				s1->y = s1->y+8;
-
 			}
 			// Move's right
 			else if (directions1 == 'd'){
 				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y,s->x+6,s->y+6,0x0000,0x0000);
 				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x+8,s->y,s->x+14,s->y+6,0xf000,0xf000);
 				s1->x = s1->x+8;
-
 			}
 			ALT_SEM_POST(directions1_sem);
 		}
@@ -386,14 +384,12 @@ void MoveSnake(void* the_snake){
 				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y,s->x+6,s->y+6,0x0000,0x0000);
 				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y-8,s->x+6,s->y-2,0x0ff0,0x0ff0);
 				s2->y = s2->y-8;
-
 			}
 			// Move's left
 			else if (directions2 == 'l'){
 				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y,s->x+6,s->y+6,0x0000,0x0000);
 				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x-8,s->y,s->x-2,s->y+6,0x0ff0,0x0ff0);
 				s2->x = s2->x-8;
-
 			}
 			// Move's down
 			else if (directions2 == 'z'){
@@ -409,8 +405,6 @@ void MoveSnake(void* the_snake){
 			}
 			ALT_SEM_POST(directions2_sem);
 		}
-	printf("%d  : %d", s1->y, s1->x);
-	printf("%d  : %d", s2->y, s2->x);
 	OSTimeDlyHMSM(0,0,0,120);
 	}
 }
