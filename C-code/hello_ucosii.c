@@ -16,13 +16,15 @@ OS_STK AddsnakePart_stk[TASK_STACKSIZE];
 OS_STK MoveSnake_stk[2][TASK_STACKSIZE];
 OS_STK BorderCheck_stk[2][TASK_STACKSIZE];
 OS_STK GameOver_stk[TASK_STACKSIZE];
+OS_STK MainMenu_stk[TASK_STACKSIZE];
 
 /* Definition of Task Priorities */
-#define READ_KEYBOARD_PRIORITY  3
-#define CREATE_FIELD_PRIORITY  	1
-#define MOVE_SNAKE_PRIORITY		7
-#define BORDER_CHECK_PRIORITY	5
-#define GAME_OVER_PRIORITY		2
+#define READ_KEYBOARD_PRIORITY  4
+#define CREATE_FIELD_PRIORITY  	2
+#define MOVE_SNAKE_PRIORITY		8
+#define BORDER_CHECK_PRIORITY	6
+#define GAME_OVER_PRIORITY		3
+#define MAIN_MENU_PRIORITY		1
 
 /* Other difine's */
 #define WHITE				0xFFFF
@@ -63,6 +65,7 @@ void CreateField (void* the_snake);
 void MoveSnake(void* the_snake);
 void BorderCheck(void* the_snake);
 void GameOver(void* pdata);
+void MainMenu(void* pdata);
 snake CreateSnake(int id);
 //snake AddsnakePart(snake head, int id, int x, int y);
 
@@ -404,34 +407,71 @@ void MoveSnake(void* the_snake){
 				s2->x = s2->x+8;
 			}
 			ALT_SEM_POST(directions2_sem);
+
+
+		ALT_SEM_PEND(directions1_sem, 0);
+		ALT_SEM_PEND(directions2_sem, 0);
+		if (directions1 == 'K' || directions2 == 'K'){
+		  OSTaskCreateExt(GameOver,
+				NULL,
+				(void *) &GameOver_stk[TASK_STACKSIZE - 1],
+				GAME_OVER_PRIORITY,GAME_OVER_PRIORITY,
+				GameOver_stk,
+				TASK_STACKSIZE,
+				NULL,
+				0);
+		}
+		ALT_SEM_POST(directions1_sem);
+		ALT_SEM_POST(directions2_sem);
+
 		}
 	OSTimeDlyHMSM(0,0,0,120);
 	}
 }
 
+
+/************************************************************************/
+/*
+	Prototype:
+	Include:		<altera_up_avalon_video_pixel_buffer_dma.h>
+					<altera_up_avalon_video_dma_controller.h>
+	Parameters:
+	Returns:		Nothing
+	Description:
+*/
+/************************************************************************/
+
 void GameOver(void* pdata){
 	//alt_up_pixel_buffer_dma_draw_box(vgapixel,1,1,40,40,0x0000,0x0000);
 	//alt_up_pixel_buffer_dma_draw_box(vgapixel,120,140,140,160,0x0000,0x0000);
-	char str[20] = "game over";
-	while (1){
-		ALT_SEM_PEND(directions1_sem, 0);
-		ALT_SEM_PEND(directions2_sem, 0);
-		if (directions1 == 'K' || directions2 == 'K'){
-			alt_up_pixel_buffer_dma_clear_screen(vgapixel, 0);
-			alt_up_video_dma_draw_string(vgachar, str, 35,30, 1);
-			// show score
-			OSTimeDlyHMSM(0,0,2,0);
-			// press enter??
-			// highscore??
-			// to do go to main menu and delete other tasks.
-		}
-		ALT_SEM_POST(directions1_sem);
-		ALT_SEM_POST(directions2_sem);
-
-		OSTimeDlyHMSM(0,0,0,190);
-	}
+	char str[20] = "GAME OVER";
+		alt_up_pixel_buffer_dma_clear_screen(vgapixel, 0);
+		alt_up_video_dma_draw_string(vgachar, str, 35,30, 0);
+		OSTimeDlyHMSM(0,0,2,0);
+		// show score
+		// press enter??
+		// highscore??
+		// to do go to main menu and delete other tasks.
 }
 
+
+void MainMenu(void* pdata){
+	char str1[20] = "SNAKE!";
+	char str2[20] = "Play";
+	char str3[20] = "Multiplier";
+	char str4[20] = "Instructions";
+	alt_up_pixel_buffer_dma_clear_screen(vgapixel, 0);
+	alt_up_pixel_buffer_dma_draw_box(vgapixel,145,76,174,86,0x6e00,0x6e00);
+	while (1){
+		alt_up_video_dma_draw_string(vgachar, str1, 37,20, 0);
+		alt_up_video_dma_draw_string(vgachar, str2, 35,30, 0);
+		alt_up_video_dma_draw_string(vgachar, str3, 35,35, 0);
+		alt_up_video_dma_draw_string(vgachar, str4, 35,40, 0);
+
+		OSTimeDlyHMSM(0,0,2,0);
+
+	}
+}
 
 /* The main function creates tasks and starts multi-tasking */
 int main(void){
@@ -547,14 +587,17 @@ int main(void){
 	        NULL,
 	        0);
 
-	  OSTaskCreateExt(GameOver,
-			NULL,
-			(void *) &GameOver_stk[TASK_STACKSIZE - 1],
-			GAME_OVER_PRIORITY,GAME_OVER_PRIORITY,
-			GameOver_stk,
-			TASK_STACKSIZE,
-			NULL,
-			0);
+	/*
+	  OSTaskCreateExt(MainMenu,
+	        NULL,
+	        (void *)&MainMenu_stk[TASK_STACKSIZE-1],
+	        MAIN_MENU_PRIORITY,
+	        MAIN_MENU_PRIORITY,
+	        MainMenu_stk,
+	        TASK_STACKSIZE,
+	        NULL,
+	        0);
+	*/
 
 	printf("end of main \n");
 
