@@ -18,7 +18,7 @@ OS_STK BorderCheck_stk[2][TASK_STACKSIZE];
 OS_STK GameOver_stk[TASK_STACKSIZE];
 OS_STK MainMenu_stk[TASK_STACKSIZE];
 OS_STK GenerateApple_stk[TASK_STACKSIZE];
-
+OS_STK AppleEaten_stk[TASK_STACKSIZE];
 /* Definition of Task Priorities */
 #define READ_KEYBOARD_PRIORITY  4
 #define CREATE_FIELD_PRIORITY  	2
@@ -27,10 +27,11 @@ OS_STK GenerateApple_stk[TASK_STACKSIZE];
 #define GAME_OVER_PRIORITY		3
 #define MAIN_MENU_PRIORITY		1
 #define GENERATE_APPLE_PRIORITY  10
-
+#define APPLE_EATEN_PRIORITY  11
 /* Other difine's */
 #define WHITE				0xFFFF
 #define BLUE				0x000F
+#define collor				0xfeee
 #define X_MAX_SIZE			273
 #define Y_MAX_SIZE			232
 
@@ -46,14 +47,15 @@ alt_up_character_lcd_dev *lcd_dev;
 char text_top_row[40] = "-Snake-\0";
 
 /* Snake struct */
-typedef struct snakelist *snake;
-typedef struct applelocation apple;
+typedef struct snakeparts *snake;
+typedef struct applelocation *apple;
 
-struct snakelist{
+struct snakeparts{
 	int id;
 	int x;
 	int y;
-	struct snake1 *next;
+	snake *next;
+	int length;
 };
 
 struct applelocation{
@@ -67,6 +69,7 @@ snake s2;
 apple a;
 char  directions1 = 0;
 char  directions2 = 0;
+char Eaten = 0;
 
 /* Prototypes */
 void ReadKeyboard(void* id);
@@ -76,7 +79,9 @@ void BorderCheck(void* the_snake);
 void GameOver(void* pdata);
 void MainMenu(void* pdata);
 void GenerateApple(void* pdata);
+void AppleEaten(void* pdata);
 snake CreateSnake(int id);
+snake AddSnake(snake head, int x, int y , int id);
 //snake AddsnakePart(snake head, int id, int x, int y);
 
 
@@ -209,7 +214,7 @@ void CreateField(void* the_snake){
 	snake s = the_snake;
 
 	if (s->id == 1){
-		alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y,s->x+6,s->y+6,0xf000,0xf000);
+		alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y,s->x+6,s->y+6,collor,collor);
 	} else {
 		alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y,s->x+6,s->y+6,0x0ff0,0x0ff0);
 	}
@@ -250,9 +255,9 @@ void BorderCheck(void* the_snake){
 				directions2 = 'K';
 				ALT_SEM_POST(directions2_sem);
 			} else if (s->y < 9 || s->y > 225){
-				ALT_SEM_PEND(directions1_sem, 0);
-				directions1 = 'K';
-				ALT_SEM_POST(directions1_sem);
+				ALT_SEM_PEND(directions2_sem, 0);
+				directions2 = 'K';
+				ALT_SEM_POST(directions2_sem);
 			}
 		}
 		OSTimeDlyHMSM(0,0,0,180);
@@ -275,11 +280,12 @@ snake CreateSnake(int id){
 	/* Declare variables */
 	snake var_snake;
 
-	/* malloc space for the snake */
-	var_snake = (snake)malloc(sizeof(struct snakelist));
 
-	/* Set variables of the snake */
+	/* malloc space for the snake */
+	var_snake = (snake)malloc(sizeof(struct snakeparts));
 	var_snake->next = NULL;
+	var_snake->length = 0;
+	/* Set variables of the snake */
 	var_snake->id = id;
 	if (var_snake->id == 1)
 	{
@@ -293,6 +299,25 @@ snake CreateSnake(int id){
 	return var_snake;
 }
 
+snake AddSnake(snake head, int x, int y, int id){
+
+	snake p,temp;
+	temp = CreateSnake(id);
+	temp->x = x;
+	temp->y = y;
+
+    if(head == NULL){
+        head = temp;     //when linked list is empty
+    }
+    else{
+            p  = head;//assign head to p
+            while(p->next != NULL){
+                p = p->next;//traverse the list until p is the last node.The last node always points to NULL.
+            }
+            p->next = temp;//Point the previous last node to the new node created.
+        }
+        return head;
+}
 
 /*
 /************************************************************************/
@@ -342,23 +367,29 @@ snake AddsnakePart(snake head, int id, int x, int y){
 void MoveSnake(void* the_snake){
 	/* Declare variables */
 	snake s = the_snake;
-
+/*
 	if (s->id == 1){
-		alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y,s->x+6,s->y+6,0xf000,0xf000);
+	   //for(int i = 0; i < 3; i++){
+		alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y,s->x+6,s->y+6,collor,collor);
+		s->x = s->x+8;
+	  //}
 	} else {
+		//for(int i = 0; i < 3; i++){
 		alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y,s->x+6,s->y+6,0x0ff0,0x0ff0);
+		s->x = s->x+8;
+		//}
 	}
-
+*/
 	while(1){
 	// upper left corner X0,Y0,X1,Y1 : 51,9,57,15
 	// upper right corner X0,Y0,X1,Y1: 267,9,273,15
 	// lower left corner X0,Y0,X1,Y1 : 51,225,57,231
 	// lower right corner X0,Y0,X1,Y1: 267,225,273,231
 
-	 //alt_up_pixel_buffer_dma_draw_box(vgapixel,51,9,57,15,0xf000,0xf000); // upper left corner
-	 //alt_up_pixel_buffer_dma_draw_box(vgapixel,51+216,9,57+216,15,0xf000,0xf000);// upper right corner
-	 //alt_up_pixel_buffer_dma_draw_box(vgapixel,51,9+216,57,15+216,0xf000,0xf000); // lower right corner
-	 //alt_up_pixel_buffer_dma_draw_box(vgapixel,51+216,9+216,57+216,15+216,0xf000,0xf000); // lower left corner
+	 //alt_up_pixel_buffer_dma_draw_box(vgapixel,51,9,57,15,collor,collor); // upper left corner
+	 //alt_up_pixel_buffer_dma_draw_box(vgapixel,51+216,9,57+216,15,collor,collor);// upper right corner
+	 //alt_up_pixel_buffer_dma_draw_box(vgapixel,51,9+216,57,15+216,collor,collor); // lower right corner
+	 //alt_up_pixel_buffer_dma_draw_box(vgapixel,51+216,9+216,57+216,15+216,collor,collor); // lower left corner
 
 	// printf("%d",s->id);
 
@@ -366,27 +397,35 @@ void MoveSnake(void* the_snake){
 			ALT_SEM_PEND(directions1_sem, 0);
 			// Move's up
 			if (directions1 == 'w'){
+
 				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y,s->x+6,s->y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y-8,s->x+6,s->y-2,0xf000,0xf000);
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y-8,s->x+6,s->y-2,collor,collor);
 				s1->y = s1->y-8;
+
 			}
 			// Move's left
 			else if (directions1 == 'a'){
+
 				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y,s->x+6,s->y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x-8,s->y,s->x-2,s->y+6,0xf000,0xf000);
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x-8,s->y,s->x-2,s->y+6,collor,collor);
 				s1->x = s1->x-8;
+
 			}
 			// Move's down
 			else if (directions1 == 's'){
+				//for(int i = 0; i < 3; i++){
 				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y,s->x+6,s->y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y+8,s->x+6,s->y+14,0xf000,0xf000);
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y+8,s->x+6,s->y+14,collor,collor);
 				s1->y = s1->y+8;
+				//}
 			}
 			// Move's right
 			else if (directions1 == 'd'){
+				//for(int i = 0; i < 3; i++){
 				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y,s->x+6,s->y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x+8,s->y,s->x+14,s->y+6,0xf000,0xf000);
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x+8,s->y,s->x+14,s->y+6,collor,collor);
 				s1->x = s1->x+8;
+				//}
 			}
 			ALT_SEM_POST(directions1_sem);
 		}
@@ -417,6 +456,36 @@ void MoveSnake(void* the_snake){
 				s2->x = s2->x+8;
 			}
 			ALT_SEM_POST(directions2_sem);
+
+
+
+			if(s1->x == a->x && s1->y == a->y){
+					AddSnake(s1,s1->x,s1->y,s1->id);
+					s1->length++;
+					printf("Apple Eaten snake1 = %d\n", s1->length);
+					OSTaskCreateExt(GenerateApple,
+					  	        NULL,
+					  	        (void *)&GenerateApple_stk[TASK_STACKSIZE-1],
+					  	        GENERATE_APPLE_PRIORITY,
+					  	        GENERATE_APPLE_PRIORITY,
+					  	        GenerateApple_stk,
+					  	        TASK_STACKSIZE,
+					  	        NULL,
+					  	        0);
+				}else if(s2->x == a->x && s2->y == a->y){
+					AddSnake(s2,s2->x,s2->y,s2->id);
+					s2->length++;
+					printf("Apple Eaten snake2 = %d\n", s2->length);
+					OSTaskCreateExt(GenerateApple,
+							  	        NULL,
+							  	        (void *)&GenerateApple_stk[TASK_STACKSIZE-1],
+							  	        GENERATE_APPLE_PRIORITY,
+							  	        GENERATE_APPLE_PRIORITY,
+							  	        GenerateApple_stk,
+							  	        TASK_STACKSIZE,
+							  	        NULL,
+							  	        0);
+				}
 
 
 		ALT_SEM_PEND(directions1_sem, 0);
@@ -496,10 +565,14 @@ void GenerateApple(void* pdata){
 	alt_up_pixel_buffer_dma_draw_box(vgapixel,51+(xLocation*8),9+(yLocation*8),57+(xLocation*8),15+(yLocation*8),0xf000,0xf000);
 // else
 	//do nothing;
+	printf("Appel created\n");
+	OSTaskDel(OS_PRIO_SELF);
 
-	OSTimeDlyHMSM(0,0,0,200);
 }
 
+
+void AppleEaten(void* pdata){
+}
 /* The main function creates tasks and starts multi-tasking */
 int main(void){
 	OSInit();
@@ -615,14 +688,24 @@ int main(void){
 	        0);
 
 	  OSTaskCreateExt(GenerateApple,
-	  	        NULL,
-	  	        (void *)&GenerateApple_stk[TASK_STACKSIZE-1],
-	  	        GENERATE_APPLE_PRIORITY,
-	  	        GENERATE_APPLE_PRIORITY,
-	  	        GenerateApple_stk,
-	  	        TASK_STACKSIZE,
-	  	        NULL,
-	  	        0);
+	  			   	  	  	NULL,
+	  			   	        (void *)&GenerateApple_stk[TASK_STACKSIZE-1],
+	  			  	  	  	GENERATE_APPLE_PRIORITY,
+	  			  	  	  	GENERATE_APPLE_PRIORITY,
+	  			  	  	  	GenerateApple_stk,
+	  			  	  	  	TASK_STACKSIZE,
+	  			  	  	  	NULL,
+	  			  	  	  	0);
+
+	  OSTaskCreateExt(AppleEaten,
+			   	  	  	NULL,
+			   	        (void *)&AppleEaten_stk[TASK_STACKSIZE-1],
+			  	  	  	APPLE_EATEN_PRIORITY,
+			  	  	  	APPLE_EATEN_PRIORITY,
+			  	  	  	AppleEaten_stk,
+			  	  	  	TASK_STACKSIZE,
+			  	  	  	NULL,
+			  	  	  	0);
 
 	/*
 	  OSTaskCreateExt(MainMenu,
