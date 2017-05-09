@@ -20,3 +20,4 @@ C-code/Makefile
 *.S
 C-code/create-this-app
 *.txt
+*.force_relink
