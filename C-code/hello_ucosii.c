@@ -18,7 +18,7 @@ OS_STK BorderCheck_stk[2][TASK_STACKSIZE];
 OS_STK GameOver_stk[TASK_STACKSIZE];
 OS_STK MainMenu_stk[TASK_STACKSIZE];
 OS_STK GenerateApple_stk[TASK_STACKSIZE];
-OS_STK AppleEaten_stk[TASK_STACKSIZE];
+
 /* Definition of Task Priorities */
 #define READ_KEYBOARD_PRIORITY  4
 #define CREATE_FIELD_PRIORITY  	2
@@ -27,7 +27,7 @@ OS_STK AppleEaten_stk[TASK_STACKSIZE];
 #define GAME_OVER_PRIORITY		3
 #define MAIN_MENU_PRIORITY		1
 #define GENERATE_APPLE_PRIORITY  10
-#define APPLE_EATEN_PRIORITY  11
+
 /* Other difine's */
 #define WHITE				0xFFFF
 #define BLUE				0x000F
