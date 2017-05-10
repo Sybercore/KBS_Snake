@@ -56,7 +56,7 @@ struct snakeparts{
 	int y;
 	snake *next;
 	int length;
-};
+}*head = NULL;
 
 struct applelocation{
 	int x;
@@ -67,6 +67,8 @@ struct applelocation{
 snake s1;
 snake s2;
 apple a;
+snake firsts1, firsts2,lasts1,lasts2;
+int sizes1, sizes2;
 char  directions1 = 0;
 char  directions2 = 0;
 char Eaten = 0;
@@ -79,9 +81,8 @@ void BorderCheck(void* the_snake);
 void GameOver(void* pdata);
 void MainMenu(void* pdata);
 void GenerateApple(void* pdata);
-void AppleEaten(void* pdata);
 snake CreateSnake(int id);
-snake AddSnake(snake head, int x, int y , int id);
+void AddSnake(snake head, int x, int y , int id);
 //snake AddsnakePart(snake head, int id, int x, int y);
 
 
@@ -278,45 +279,69 @@ void BorderCheck(void* the_snake){
 snake CreateSnake(int id){
 
 	/* Declare variables */
-	snake var_snake;
+	snake new_snake;
 
 
 	/* malloc space for the snake */
-	var_snake = (snake)malloc(sizeof(struct snakeparts));
-	var_snake->next = NULL;
-	var_snake->length = 0;
+	new_snake = (snake)malloc(sizeof(struct snakeparts));
+	new_snake->next = NULL;
+	new_snake->length = 0;
 	/* Set variables of the snake */
-	var_snake->id = id;
-	if (var_snake->id == 1)
+	new_snake->id = id;
+	if (new_snake->id == 1)
 	{
-		var_snake->x = 67;
-		var_snake->y = 25;
+		new_snake->x = 67;
+		new_snake->y = 25;
 	}
-	if (var_snake->id == 2){
-		var_snake->x = 251;
-		var_snake->y = 209;
+	if (new_snake->id == 2){
+		new_snake->x = 251;
+		new_snake->y = 209;
 	}
-	return var_snake;
+	sizes1,sizes2 = 0;
+	printf("Snake %d created \n",id);
+	return new_snake;
 }
 
-snake AddSnake(snake head, int x, int y, int id){
+void AddSnake(snake head, int x, int y, int id){
 
-	snake p,temp;
-	temp = CreateSnake(id);
+	snake temp,newnode;
+	newnode = CreateSnake(id);
 	temp->x = x;
 	temp->y = y;
 
-    if(head == NULL){
-        head = temp;     //when linked list is empty
+    if(id == 1){
+    	if(firsts1 == lasts1 && firsts1 == NULL){
+    		firsts1 = lasts1 = temp;
+    		firsts1->next = NULL;
+    		lasts1->next = NULL;
+    		sizes1++;
+    		printf("Snake%d part %d added\n",id,sizes1);
+    	}else{
+    		temp = firsts1;
+    		firsts1 = newnode;
+    		lasts1->next = NULL;
+    		sizes1++;
+    		printf("Snake%d part %d added\n",id,sizes1);
+    	}
     }
-    else{
-            p  = head;//assign head to p
-            while(p->next != NULL){
-                p = p->next;//traverse the list until p is the last node.The last node always points to NULL.
-            }
-            p->next = temp;//Point the previous last node to the new node created.
-        }
-        return head;
+
+    if(id == 2){
+    	if(firsts2 == lasts2 && firsts2 == NULL){
+    	   firsts2 = lasts2 = temp;
+    	   firsts2->next = NULL;
+    	   lasts2->next = NULL;
+    	   sizes2++;
+    	   printf("Snake%d part %d added\n",id,sizes2);
+    	   }
+    	else{
+    		temp = firsts2;
+    		firsts2 = newnode;
+    		lasts2->next = NULL;
+    		sizes2++;
+    		printf("Snake%d part %d added\n",id,sizes2);
+    	}
+    }
+
 }
 
 /*
@@ -380,6 +405,8 @@ void MoveSnake(void* the_snake){
 		//}
 	}
 */
+
+	snake *ptr;
 	while(1){
 	// upper left corner X0,Y0,X1,Y1 : 51,9,57,15
 	// upper right corner X0,Y0,X1,Y1: 267,9,273,15
@@ -393,10 +420,17 @@ void MoveSnake(void* the_snake){
 
 	// printf("%d",s->id);
 
+
+
 		if (s->id == 1){
 			ALT_SEM_PEND(directions1_sem, 0);
 			// Move's up
 			if (directions1 == 'w'){
+				 for (ptr = first;ptr != NULL;ptr = ptr->next)
+				        {
+				            if (ptr->value == oldval)
+				            {
+				                ptr->value = newval;
 
 				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y,s->x+6,s->y+6,0x0000,0x0000);
 				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y-8,s->x+6,s->y-2,collor,collor);
@@ -526,6 +560,12 @@ void GameOver(void* pdata){
 	char str[20] = "GAME OVER";
 		alt_up_pixel_buffer_dma_clear_screen(vgapixel, 0);
 		alt_up_video_dma_draw_string(vgachar, str, 35,30, 0);
+
+		if(directions2 == 'K'){
+			printf("snake2 died\n");
+		}else
+			printf("Snake1 died\n");
+
 		OSTimeDlyHMSM(0,0,2,0);
 		// show score
 		// press enter??
@@ -571,8 +611,6 @@ void GenerateApple(void* pdata){
 }
 
 
-void AppleEaten(void* pdata){
-}
 /* The main function creates tasks and starts multi-tasking */
 int main(void){
 	OSInit();
@@ -696,16 +734,6 @@ int main(void){
 	  			  	  	  	TASK_STACKSIZE,
 	  			  	  	  	NULL,
 	  			  	  	  	0);
-
-	  OSTaskCreateExt(AppleEaten,
-			   	  	  	NULL,
-			   	        (void *)&AppleEaten_stk[TASK_STACKSIZE-1],
-			  	  	  	APPLE_EATEN_PRIORITY,
-			  	  	  	APPLE_EATEN_PRIORITY,
-			  	  	  	AppleEaten_stk,
-			  	  	  	TASK_STACKSIZE,
-			  	  	  	NULL,
-			  	  	  	0);
 
 	/*
 	  OSTaskCreateExt(MainMenu,
