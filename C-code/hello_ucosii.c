@@ -8,6 +8,7 @@
 #include "string.h"
 #include <os/alt_sem.h>
 
+
 /* Definition of Task Stacks */
 #define   TASK_STACKSIZE       2048
 OS_STK ReadKeyboard_stk[2][TASK_STACKSIZE];
@@ -18,6 +19,8 @@ OS_STK BorderCheck_stk[2][TASK_STACKSIZE];
 OS_STK GameOver_stk[TASK_STACKSIZE];
 OS_STK MainMenu_stk[TASK_STACKSIZE];
 OS_STK GenerateApple_stk[TASK_STACKSIZE];
+OS_STK ReadKeyboardMenu_stk[TASK_STACKSIZE];
+OS_STK StartSinglePlayer_stk[TASK_STACKSIZE];
 
 /* Definition of Task Priorities */
 #define READ_KEYBOARD_PRIORITY  4
@@ -27,8 +30,12 @@ OS_STK GenerateApple_stk[TASK_STACKSIZE];
 #define GAME_OVER_PRIORITY		3
 #define MAIN_MENU_PRIORITY		1
 #define GENERATE_APPLE_PRIORITY  10
+#define READ_KEYBOARD_MENU_PRIORITY  11
+#define START_SINGLE_PLAYER_PRIORITY 12
 
 /* Other difine's */
+#define MainGreen 			0x6e00
+#define BLACK 				0x0000
 #define WHITE				0xFFFF
 #define BLUE				0x000F
 #define collor				0xfeee
@@ -42,6 +49,7 @@ ALT_SEM(directions2_sem);
 ALT_SEM(Snake_Length);
 ALT_SEM(Apple_Loc);
 ALT_SEM(Snake_Loc);
+ALT_SEM(menu_sem);
 
 /* Screen variables */
 alt_up_pixel_buffer_dma_dev* vgapixel;				//pixel buffer device
@@ -78,6 +86,7 @@ int sizes1, sizes2;
 char  directions1 = 0;
 char  directions2 = 0;
 char Eaten = 0;
+char menu_id = 0;
 
 /* Prototypes */
 void ReadKeyboard(void* id);
@@ -89,7 +98,8 @@ void MainMenu(void* pdata);
 void GenerateApple(void* pdata);
 snake CreateSnake(int id);
 void AddSnake(snake head);
-//snake AddsnakePart(snake head, int id, int x, int y);
+void ReadKeyboardMenu(void* pdata);
+void StartSinglePlayer(void* pdata);
 
 
 /************************************************************************/
@@ -194,6 +204,103 @@ void ReadKeyboard(void* id){
 	}
 }
 
+
+void ReadKeyboardMenu(void* pdata){
+	/* Declare variables */
+	volatile int * PS2_ptr = (int *) 0x10000100;
+	int PS2_data, RVALID;
+	int byte = 0, loc = 1, count = 0;
+
+	/* Start checking for input */
+	while (1){
+		/* Initializing keyboard */
+		PS2_data = *(PS2_ptr);
+		RVALID = PS2_data & 0x8000;
+
+		/* Check if input is available */
+		if (RVALID){
+			/* Decoding byte */
+			byte = PS2_data & 0xFF;
+
+			if (menu_id == 0){
+				/* Main screen keys */
+				switch (byte){
+					// Next
+					case 0x29:
+						// Space
+						if (count >= 2){
+							if (loc == 0){
+								// Top word
+								alt_up_pixel_buffer_dma_draw_box(vgapixel,130,139,135,144,BLACK,BLACK);
+								alt_up_pixel_buffer_dma_draw_box(vgapixel,130,119,135,124,MainGreen,MainGreen);
+								loc = loc + 1;
+							} else if (loc == 1){
+								// Bottom word
+								alt_up_pixel_buffer_dma_draw_box(vgapixel,130,119,135,124,BLACK,BLACK);
+								alt_up_pixel_buffer_dma_draw_box(vgapixel,130,139,135,144,MainGreen,MainGreen);
+								loc = loc - 1;
+							}
+							count = 0;
+						}
+						break;
+					// Go
+					case 0x5A:
+						// Enter
+						if (count >= 2){
+							if (loc == 1){
+								// Start single player
+								ALT_SEM_PEND(menu_sem, 0);
+								menu_id = 'l'; // Create Game
+								ALT_SEM_POST(menu_sem);
+								OSTaskCreateExt(StartSinglePlayer,
+										NULL,
+										(void *) &StartSinglePlayer_stk[TASK_STACKSIZE - 1],
+										START_SINGLE_PLAYER_PRIORITY, START_SINGLE_PLAYER_PRIORITY,
+										StartSinglePlayer_stk,
+										TASK_STACKSIZE,
+										NULL,
+										0);
+
+								OSTaskDel(OS_PRIO_SELF); // not longer needed
+
+							} else if (loc == 0){
+								// Start multiplier
+								ALT_SEM_PEND(menu_sem, 0);
+								menu_id = '1'; // Create Game
+								ALT_SEM_POST(menu_sem);
+								// TO DO
+								// Task StartMultiplier starten
+							}
+							count = 0;
+						}
+					}
+				} else if (menu_id == '2'){
+					switch(byte){
+						case 0x5A:
+						// Enter
+						if (count >= 2){
+							  OSTaskCreateExt(MainMenu,
+							        NULL,
+							        (void *)&MainMenu_stk[TASK_STACKSIZE-1],
+							        MAIN_MENU_PRIORITY,
+							        MAIN_MENU_PRIORITY,
+							        MainMenu_stk,
+							        TASK_STACKSIZE,
+							        NULL,
+							        0);
+
+							  ALT_SEM_PEND(menu_sem, 0);
+							  menu_id = '0'; // Create Game
+							  ALT_SEM_POST(menu_sem);
+						}
+						count = 0;
+				}
+			}
+		count++;
+		}
+    OSTimeDlyHMSM(0, 0, 0, 200);
+	}
+}
 
 /************************************************************************/
 /*
@@ -332,40 +439,6 @@ void AddSnake(snake head){
 
 
 }
-
-/*
-/************************************************************************/
-/*
-	Prototype:
-	Include:
-	Parameters:
-	Returns:
-	Description:
-*/
-/************************************************************************
-
-snake AddsnakePart(snake head, int id, int x, int y){
-	snake temp,p;
-	temp = CreateSnake(1);
-	temp->x  = x;
-	temp->y  = y;
-	temp->id = id;
-
-	if(head == NULL){
-		head = temp;
-	} else {
-		p = head;
-
-	while (p->next != NULL){
-		p = p->next;
-	}
-	p->next = temp;
-	}
-
-	return head;
-}
-
-*/
 
 
 /************************************************************************/
@@ -600,41 +673,53 @@ void MoveSnake(void* the_snake){
 /************************************************************************/
 
 void GameOver(void* pdata){
-	//alt_up_pixel_buffer_dma_draw_box(vgapixel,1,1,40,40,0x0000,0x0000);
-	//alt_up_pixel_buffer_dma_draw_box(vgapixel,120,140,140,160,0x0000,0x0000);
-	char str[20] = "GAME OVER";
-		alt_up_pixel_buffer_dma_clear_screen(vgapixel, 0);
-		alt_up_video_dma_draw_string(vgachar, str, 35,30, 0);
+	// Clear screen
+	alt_up_pixel_buffer_dma_clear_screen(vgapixel, BLACK);
+	alt_up_video_dma_screen_fill(vgachar, BLACK, 0);
+	alt_up_video_dma_screen_fill(vgachar, BLACK, 1);
 
-		if(directions2 == 'K'){
-			printf("snake2 died\n");
-		}else
-			printf("Snake1 died\n");
+	char GameOverString[25];
+	strcpy(GameOverString, "GAME OVER");
+	alt_up_video_dma_draw_string(vgachar, GameOverString, 35,30, 0);
 
-		OSTimeDlyHMSM(0,0,2,0);
-		// show score
-		// press enter??
-		// highscore??
-		// to do go to main menu and delete other tasks.
-}
+	ALT_SEM_PEND(menu_sem, 0);
+	menu_id = '2'; // make keyboard responsive
+	ALT_SEM_POST(menu_sem);
 
+	  OSTaskCreateExt(ReadKeyboardMenu,
+	        NULL,
+	        (void *)&ReadKeyboardMenu_stk[TASK_STACKSIZE-1],
+	        READ_KEYBOARD_MENU_PRIORITY,
+	        READ_KEYBOARD_MENU_PRIORITY,
+	        ReadKeyboardMenu_stk,
+	        TASK_STACKSIZE,
+	        NULL,
+	        0);
 
-void MainMenu(void* pdata){
-	char str1[20] = "SNAKE!";
-	char str2[20] = "Play";
-	char str3[20] = "Multiplier";
-	char str4[20] = "Instructions";
-	alt_up_pixel_buffer_dma_clear_screen(vgapixel, 0);
-	alt_up_pixel_buffer_dma_draw_box(vgapixel,145,76,174,86,0x6e00,0x6e00);
-	while (1){
-		alt_up_video_dma_draw_string(vgachar, str1, 37,20, 0);
-		alt_up_video_dma_draw_string(vgachar, str2, 35,30, 0);
-		alt_up_video_dma_draw_string(vgachar, str3, 35,35, 0);
-		alt_up_video_dma_draw_string(vgachar, str4, 35,40, 0);
+	// show score
 
-		OSTimeDlyHMSM(0,0,2,0);
-
+	if(directions2 == 'K'){
+		printf("snake2 died\n");
+	}else{
+		printf("Snake1 died\n");
 	}
+
+	OSTimeDlyHMSM(0,0,2,0);
+
+	strcpy(GameOverString, "Press enter to continue");
+	alt_up_video_dma_draw_string(vgachar, GameOverString, 38,30, 0);
+
+	OSTaskDelReq(READ_KEYBOARD_PRIORITY);
+	OSTaskDelReq(READ_KEYBOARD_PRIORITY+1);
+
+	OSTaskDelReq(MOVE_SNAKE_PRIORITY);
+	OSTaskDelReq(MOVE_SNAKE_PRIORITY+1);
+
+	OSTaskDelReq(BORDER_CHECK_PRIORITY);
+	OSTaskDelReq(BORDER_CHECK_PRIORITY+1);
+
+	OSTaskDel(OS_PRIO_SELF);
+	// delete other tasks and self.
 }
 
 
@@ -658,6 +743,199 @@ void GenerateApple(void* pdata){
 }
 
 
+void MainMenu(void* pdata){
+	// Creating menu strings
+	char menu_string1[20];
+	char menu_string2[20];
+	char menu_string3[20];
+
+	strcpy(menu_string1, "SNAKE!");
+	strcpy(menu_string2, "Play");
+	strcpy(menu_string3, "Multiplier");
+
+	// Creating player 1 strings
+	char player1_string1[20];
+	char player1_string2[20];
+	char player1_string3[21];
+
+	strcpy(player1_string1, "Player 1 controls:");
+	strcpy(player1_string2, "w -> up   a -> left");
+	strcpy(player1_string3, "s -> down d -> right");
+
+	// Creating menu control strings
+	char menu_controls1[20];
+	char menu_controls2[20];
+	char menu_controls3[20];
+
+	strcpy(menu_controls1, "Menu controls:");
+	strcpy(menu_controls2, "space -> next");
+	strcpy(menu_controls3, "enter -> confirm");
+
+	// Creating player 2 strings
+	char player2_string1[20];
+	char player2_string2[20];
+	char player2_string3[21];
+
+	strcpy(player2_string1, "Player 2 controls:");
+	strcpy(player2_string2, "8 -> up   4 -> left");
+	strcpy(player2_string3, "5 -> down 6 -> right");
+
+
+	// Clear screen
+	alt_up_video_dma_screen_fill(vgachar, BLACK, 0);
+	alt_up_video_dma_screen_fill(vgachar, BLACK, 1);
+
+	// Draw first option
+	alt_up_pixel_buffer_dma_draw_box(vgapixel,145,76,174,86,MainGreen,MainGreen);
+
+	// Draw back box
+	alt_up_pixel_buffer_dma_draw_box(vgapixel,130,119,135,124,MainGreen,MainGreen);
+
+	// Menu strings
+	alt_up_video_dma_draw_string(vgachar, menu_string1, 37,20, 0);
+	alt_up_video_dma_draw_string(vgachar, menu_string2, 35,30, 0);
+	alt_up_video_dma_draw_string(vgachar, menu_string3, 35,35, 0);
+
+	// Horizontal line
+	alt_up_pixel_buffer_dma_draw_hline(vgapixel,10,310,210,MainGreen,MainGreen);
+
+	// Player 1 controls
+	alt_up_video_dma_draw_string(vgachar, player1_string1, 3,54, 0);
+	alt_up_video_dma_draw_string(vgachar, player1_string2, 3,56, 0);
+	alt_up_video_dma_draw_string(vgachar, player1_string3, 3,58, 0);
+
+	// Menu controls
+	alt_up_video_dma_draw_string(vgachar, menu_controls1, 32,54, 0);
+	alt_up_video_dma_draw_string(vgachar, menu_controls2, 32,56, 0);
+	alt_up_video_dma_draw_string(vgachar, menu_controls3, 32,58, 0);
+
+	// Player 2 controls
+	alt_up_video_dma_draw_string(vgachar, player2_string1, 57,54, 0);
+	alt_up_video_dma_draw_string(vgachar, player2_string2, 57,56, 0);
+	alt_up_video_dma_draw_string(vgachar, player2_string3, 57,58, 0);
+
+	OSTaskDel(OS_PRIO_SELF);
+}
+
+
+void StartSinglePlayer(void* pdata){
+	int count = 0;
+
+	// Clear screen
+	alt_up_pixel_buffer_dma_clear_screen(vgapixel, BLACK);
+	alt_up_video_dma_screen_fill(vgachar, BLACK, 0);
+	alt_up_video_dma_screen_fill(vgachar, BLACK, 1);
+
+	// Create Snake
+	snake s1 = CreateSnake(1);
+
+	// Create tasks for single player
+	OSTaskCreateExt(CreateField,
+			NULL,
+			(void *) &CreateField_stk[TASK_STACKSIZE - 1],
+			CREATE_FIELD_PRIORITY, CREATE_FIELD_PRIORITY,
+			CreateField_stk,
+			TASK_STACKSIZE,
+			NULL,
+			0);
+
+	OSTaskCreateExt(ReadKeyboard,
+			s1,
+			(void *)&ReadKeyboard_stk[1][TASK_STACKSIZE-1],
+			READ_KEYBOARD_PRIORITY+1, READ_KEYBOARD_PRIORITY+1,
+			ReadKeyboard_stk,
+			TASK_STACKSIZE,
+			NULL,
+			0);
+
+	OSTaskCreateExt(BorderCheck,
+			s1,
+			(void *) &BorderCheck_stk[0][TASK_STACKSIZE - 1],
+			BORDER_CHECK_PRIORITY, BORDER_CHECK_PRIORITY,
+			BorderCheck_stk,
+			TASK_STACKSIZE,
+			NULL,
+			0);
+
+	OSTaskCreateExt(GenerateApple,
+			NULL,
+			(void *)&GenerateApple_stk[TASK_STACKSIZE-1],
+			GENERATE_APPLE_PRIORITY, GENERATE_APPLE_PRIORITY,
+			GenerateApple_stk,
+			TASK_STACKSIZE,
+			NULL,
+			0);
+
+		 // TO DO
+		 // Grow task
+
+	// Ask to press up from both players
+	char AskPressUpp[20];
+	strcpy(AskPressUpp, "Ready?");
+	alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,20, 0);
+	strcpy(AskPressUpp, "Press 'up'!");
+	alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,22, 0);
+
+	char Player1PressUpp[20];
+	strcpy(Player1PressUpp, "Ready!");
+
+	// AAAAAAAaaaaaa
+
+
+while(1){
+	ALT_SEM_PEND(directions1_sem, 0);
+	if (directions1 == 'w'){
+		alt_up_video_dma_draw_string(vgachar, Player1PressUpp, 70,26, 1);
+		OSTimeDlyHMSM(0, 0, 2, 0);
+
+		// clear words
+		strcpy(AskPressUpp, "      ");
+		alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,20, 0);
+		strcpy(AskPressUpp, "           ");
+		alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,22, 0);
+		strcpy(Player1PressUpp, "      ");
+		alt_up_video_dma_draw_string(vgachar, Player1PressUpp, 70,26, 1);
+
+		// set direction to d
+		//directions1 = 'd';
+
+		// start count down
+		char CountDown[5];
+		strcpy(CountDown, "3!");
+		alt_up_video_dma_draw_string(vgachar, CountDown, 70,22, 0);
+		OSTimeDlyHMSM(0,0,1,0);
+		strcpy(CountDown, "2!");
+		alt_up_video_dma_draw_string(vgachar, CountDown, 70,22, 0);
+		OSTimeDlyHMSM(0,0,1,0);
+		strcpy(CountDown, "1!");
+		alt_up_video_dma_draw_string(vgachar, CountDown, 70,22, 0);
+		OSTimeDlyHMSM(0,0,1,0);
+		strcpy(CountDown, "GO!");
+		alt_up_video_dma_draw_string(vgachar, CountDown, 70,22, 0);
+		OSTimeDlyHMSM(0,0,0,800);
+
+		OSTaskCreateExt(MoveSnake,
+				s1,
+				(void *) &MoveSnake_stk[0][TASK_STACKSIZE - 1],
+				MOVE_SNAKE_PRIORITY, MOVE_SNAKE_PRIORITY,
+				MoveSnake_stk,
+				TASK_STACKSIZE,
+				NULL,
+				0);
+
+		strcpy(CountDown, "   ");
+		alt_up_video_dma_draw_string(vgachar, CountDown, 70,22, 0);
+		OSTimeDlyHMSM(0,0,0,200);
+
+		// at GO clear
+		ALT_SEM_POST(directions1_sem);
+		OSTaskDel(OS_PRIO_SELF);
+	}
+	OSTimeDlyHMSM(0,0,0,300);
+}
+
+}
+
 /* The main function creates tasks and starts multi-tasking */
 int main(void){
 	OSInit();
@@ -665,6 +943,7 @@ int main(void){
 	errs = ALT_SEM_CREATE(&directions1,1);
 	errs = ALT_SEM_CREATE(&directions2,1);
 	int err = ALT_SEM_CREATE(&sem, 1);
+	int err2 = ALT_SEM_CREATE(&menu_sem, 1);
 	if (err != 0)
 		printf("Semaphore NOT created\n");
 
@@ -704,95 +983,26 @@ int main(void){
 	alt_up_character_lcd_string(lcd_dev, text_top_row);
 	alt_up_character_lcd_cursor_off(lcd_dev); // turn off the LCD cursor
 
-	s1 = CreateSnake(1);
-	s2 = CreateSnake(2);
+	OSTaskCreateExt(ReadKeyboardMenu,
+		        NULL,
+		        (void *)&ReadKeyboardMenu_stk[TASK_STACKSIZE-1],
+		        READ_KEYBOARD_MENU_PRIORITY,
+		        READ_KEYBOARD_MENU_PRIORITY,
+		        ReadKeyboardMenu_stk,
+		        TASK_STACKSIZE,
+		        NULL,
+		        0);
 
-	OSTaskCreateExt(CreateField,
-			NULL,
-			(void *) &CreateField_stk[TASK_STACKSIZE - 1],
-			CREATE_FIELD_PRIORITY,CREATE_FIELD_PRIORITY,
-			CreateField_stk,
-			TASK_STACKSIZE,
-			NULL,
-			0);
 
-	OSTaskCreateExt(BorderCheck,
-			s1,
-			(void *) &BorderCheck_stk[0][TASK_STACKSIZE - 1],
-			BORDER_CHECK_PRIORITY,BORDER_CHECK_PRIORITY,
-			BorderCheck_stk,
-			TASK_STACKSIZE,
-			NULL,
-			0);
-
-	OSTaskCreateExt(BorderCheck,
-			s2,
-			(void *) &BorderCheck_stk[1][TASK_STACKSIZE - 1],
-			BORDER_CHECK_PRIORITY+1,BORDER_CHECK_PRIORITY+1,
-			BorderCheck_stk,
-			TASK_STACKSIZE,
-			NULL,
-			0);
-
-	OSTaskCreateExt(MoveSnake,
-			s1,
-			(void *) &MoveSnake_stk[0][TASK_STACKSIZE - 1],
-			MOVE_SNAKE_PRIORITY, MOVE_SNAKE_PRIORITY,
-			MoveSnake_stk,
-			TASK_STACKSIZE,
-			NULL,
-			0);
-
-	OSTaskCreateExt(MoveSnake,
-			s2,
-			(void *) &MoveSnake_stk[1][TASK_STACKSIZE - 1],
-			MOVE_SNAKE_PRIORITY+1, MOVE_SNAKE_PRIORITY+1,
-			MoveSnake_stk,
-			TASK_STACKSIZE,
-			NULL,
-			0);
-
-	  OSTaskCreateExt(ReadKeyboard,
-	        s1,
-	        (void *)&ReadKeyboard_stk[1][TASK_STACKSIZE-1],
-	        READ_KEYBOARD_PRIORITY+1,
-	        READ_KEYBOARD_PRIORITY+1,
-	        ReadKeyboard_stk,
-	        TASK_STACKSIZE,
-	        NULL,
-	        0);
-
-	  OSTaskCreateExt(ReadKeyboard,
-	        s2,
-	        (void *)&ReadKeyboard_stk[0][TASK_STACKSIZE-1],
-	        READ_KEYBOARD_PRIORITY,
-	        READ_KEYBOARD_PRIORITY,
-	        ReadKeyboard_stk,
-	        TASK_STACKSIZE,
-	        NULL,
-	        0);
-
-	  OSTaskCreateExt(GenerateApple,
-	  			   	  	  	NULL,
-	  			   	        (void *)&GenerateApple_stk[TASK_STACKSIZE-1],
-	  			  	  	  	GENERATE_APPLE_PRIORITY,
-	  			  	  	  	GENERATE_APPLE_PRIORITY,
-	  			  	  	  	GenerateApple_stk,
-	  			  	  	  	TASK_STACKSIZE,
-	  			  	  	  	NULL,
-	  			  	  	  	0);
-
-	/*
-	  OSTaskCreateExt(MainMenu,
-	        NULL,
-	        (void *)&MainMenu_stk[TASK_STACKSIZE-1],
-	        MAIN_MENU_PRIORITY,
-	        MAIN_MENU_PRIORITY,
-	        MainMenu_stk,
-	        TASK_STACKSIZE,
-	        NULL,
-	        0);
-	*/
+		  OSTaskCreateExt(MainMenu,
+		        NULL,
+		        (void *)&MainMenu_stk[TASK_STACKSIZE-1],
+		        MAIN_MENU_PRIORITY,
+		        MAIN_MENU_PRIORITY,
+		        MainMenu_stk,
+		        TASK_STACKSIZE,
+		        NULL,
+		        0);
 
 	printf("end of main \n");
 
