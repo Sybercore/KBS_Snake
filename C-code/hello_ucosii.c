@@ -55,6 +55,7 @@ ALT_SEM(menu_sem);
 alt_up_pixel_buffer_dma_dev* vgapixel;				//pixel buffer device
 alt_up_video_dma_dev* vgachar;						//char buffer device
 alt_up_character_lcd_dev *lcd_dev;
+volatile int * PS2_ptr = (int *) 0x10000100;
 char text_top_row[40] = "-Snake-\0";
 
 /* Snake struct */
@@ -113,7 +114,6 @@ void StartSinglePlayer(void* pdata);
 
 void ReadKeyboard(void* id){
 	/* Declare variables */
-	volatile int * PS2_ptr = (int *) 0x10000100;
 	int PS2_data, RVALID;
 	int byte = 0;
 
@@ -157,32 +157,32 @@ void ReadKeyboard(void* id){
 						break;
 					/* Movement keys snake 2 */
 						// Up
-						case 0x75:
-							// 8
-							ALT_SEM_PEND(directions2_sem, 0);
-							directions2 = 'u';
-							ALT_SEM_POST(directions2_sem);
-							break;
-						// Left
-						case 0x6B:
-							// 4
-							ALT_SEM_PEND(directions2_sem, 0);
-							directions2 = 'l';
-							ALT_SEM_POST(directions2_sem);
-							break;
-						// Down
-						case 0x73:
-							// 5
-							ALT_SEM_PEND(directions2_sem, 0);
-							directions2 = 'z';
-							ALT_SEM_POST(directions2_sem);
-							break;
-						// Right
-						case 0x74:
-							// 6
-							ALT_SEM_PEND(directions2_sem, 0);
-							directions2 = 'r';
-							ALT_SEM_POST(directions2_sem);
+					case 0x75:
+						// 8
+						ALT_SEM_PEND(directions2_sem, 0);
+						directions2 = 'u';
+						ALT_SEM_POST(directions2_sem);
+						break;
+					// Left
+					case 0x6B:
+						// 4
+						ALT_SEM_PEND(directions2_sem, 0);
+						directions2 = 'l';
+						ALT_SEM_POST(directions2_sem);
+						break;
+					// Down
+					case 0x73:
+						// 5
+						ALT_SEM_PEND(directions2_sem, 0);
+						directions2 = 'z';
+						ALT_SEM_POST(directions2_sem);
+						break;
+					// Right
+					case 0x74:
+						// 6
+						ALT_SEM_PEND(directions2_sem, 0);
+						directions2 = 'r';
+						ALT_SEM_POST(directions2_sem);
 					}
 				}
     OSTimeDlyHMSM(0, 0, 0, 120);
@@ -192,7 +192,6 @@ void ReadKeyboard(void* id){
 
 void ReadKeyboardMenu(void* pdata){
 	/* Declare variables */
-	volatile int * PS2_ptr = (int *) 0x10000100;
 	int PS2_data, RVALID;
 	int byte = 0, loc = 1, count = 0;
 
@@ -259,7 +258,7 @@ void ReadKeyboardMenu(void* pdata){
 							count = 0;
 						}
 					}
-				} else if (menu_id == '2'){
+				} else if (menu_id == 2){
 					switch(byte){
 						case 0x5A:
 						// Enter
@@ -275,15 +274,15 @@ void ReadKeyboardMenu(void* pdata){
 							        0);
 
 							  ALT_SEM_PEND(menu_sem, 0);
-							  menu_id = '0'; // Create Game
+							  menu_id = 0; // Create Game
 							  ALT_SEM_POST(menu_sem);
+							  count = 0;
 						}
-						count = 0;
+					}
 				}
+				count++;
 			}
-		count++;
-		}
-    OSTimeDlyHMSM(0, 0, 0, 200);
+		OSTimeDlyHMSM(0, 0, 0, 200);
 	}
 }
 
@@ -335,31 +334,34 @@ void BorderCheck(void* the_snake){
 	/* Declare variables */
 	snake s = *((snake*) the_snake);
 
+
 	/* Starts checking if the snake is outside the border */
 	while (1){
 		if (s.id == 1){
-			if (s.loc[0].x < 51 || s.loc[0].x > 267){
+			ALT_SEM_PEND(Snake_Loc, 0);
+			if (s1.loc[0].x < 51 || s1.loc[0].x > 267){
 				ALT_SEM_PEND(directions1_sem, 0);
 				directions1 = 'K';
 				ALT_SEM_POST(directions1_sem);
-			} else if (s.loc[0].y < 9 || s.loc[0].y > 225){
+			} else if (s1.loc[0].y < 9 || s1.loc[0].y > 225){
 				ALT_SEM_PEND(directions1_sem, 0);
 				directions1 = 'K';
 				ALT_SEM_POST(directions1_sem);
 			}
+			ALT_SEM_POST(Snake_Loc);
 		}
 		if (s.id == 2){
-			if (s.loc[0].x < 51 || s.loc[0].x > 267){
+			if (s2.loc[0].x < 51 || s2.loc[0].x > 267){
 				ALT_SEM_PEND(directions2_sem, 0);
 				directions2 = 'K';
 				ALT_SEM_POST(directions2_sem);
-			} else if (s.loc[0].y < 9 || s.loc[0].y > 225){
+			} else if (s2.loc[0].y < 9 || s2.loc[0].y > 225){
 				ALT_SEM_PEND(directions2_sem, 0);
 				directions2 = 'K';
 				ALT_SEM_POST(directions2_sem);
 			}
 		}
-		OSTimeDlyHMSM(0,0,0,180);
+		OSTimeDlyHMSM(0,0,0,80);
 	}
 }
 
@@ -439,6 +441,8 @@ void MoveSnake(void* the_snake){
 	/* Declare variables */
 	snake s = *((snake*) the_snake);
 	int i = 0;
+
+	printf("%d", directions1);
 /*
 	if (s->id == 1){
 	   //for(int i = 0; i < 3; i++){
@@ -464,7 +468,7 @@ void MoveSnake(void* the_snake){
 	 //alt_up_pixel_buffer_dma_draw_box(vgapixel,51+216,9+216,57+216,15+216,collor,collor); // lower left corner
 
 	// printf("%d",s->id);
-		/*
+/*
 		if(s->id == 1){
 			ALT_SEM_PEND(Apple_Loc, 0);
 		if(s->loc[0]->x == a->x && s->loc[0]->y == a->y){
@@ -506,20 +510,21 @@ void MoveSnake(void* the_snake){
 		ALT_SEM_POST(Snake_Length);
 		}
 		ALT_SEM_POST(Apple_Loc);
+*/
 
-
-		if (s->id == 1){
+/*
+		if (s.id == 1){
 			ALT_SEM_PEND(directions1_sem, 0);
 			// Move's up
 			if (directions1 == 'w'){
 				ALT_SEM_PEND(Snake_Length,0);
-				for(i = 0; i <= s->length; i++){
+				for(i = 0; i <= s.length; i++){
 				ALT_SEM_PEND(Snake_Loc, 0);
 
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->loc[i]->x,s->loc[i]->y,s->loc[i]->x+6,s->loc[i]->y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->loc[i]->x,s->loc[i]->y-8,s->loc[i]->x+6,s->loc[i]->y-2,collor,collor);
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y,s.loc[i].x+6,s.loc[i].y+6,0x0000,0x0000);
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y-8,s.loc[i].x+6,s.loc[i].y-2,collor,collor);
 
-				s1->loc[i]->y = s1->loc[i]->y-8;
+				s1.loc[i].y = s1.loc[i].y-8;
 				ALT_SEM_POST(Snake_Loc);
 				}
 				ALT_SEM_POST(Snake_Length);
@@ -528,28 +533,29 @@ void MoveSnake(void* the_snake){
 			// Move's left
 			else if (directions1 == 'a'){
 				ALT_SEM_PEND(Snake_Length,0);
-				for(i = 0; i <= s->length; i++){
+				for(i = 0; i <= s.length; i++){
 				ALT_SEM_PEND(Snake_Loc, 0);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->loc[i]->x,s->loc[i]->y,s->loc[i]->x+6,s->loc[i]->y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->loc[i]->x-8,s->loc[i]->y,s->loc[i]->x-2,s->loc[i]->y+6,collor,collor);
-				s1->loc[i]->x = s1->loc[i]->x-8;
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y,s.loc[i].x+6,s.loc[i].y+6,0x0000,0x0000);
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x-8,s.loc[i].y,s.loc[i].x-2,s.loc[i].y+6,collor,collor);
+				s1.loc[i].x = s1.loc[i].x-8;
 				ALT_SEM_POST(Snake_Loc);
 				}
 				ALT_SEM_POST(Snake_Length);
 				/*
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->loc[i]->x,s->loc[i]->y,s->loc[i]->x+6,s->loc[i]->y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->loc[i]->x-8,s->loc[i]->y,s->loc[i]->x-2,s->loc[i]->y+6,0x0ff0,0x0ff0);
-				s2->loc[i]->x = s2->loc[i]->x-8;
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y,s.loc[i].x+6,s.loc[i].y+6,0x0000,0x0000);
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x-8,s.loc[i].y,s.loc[i].x-2,s.loc[i].y+6,0x0ff0,0x0ff0);
+				s2.loc[i].x = s2.loc[i].x-8;
+
 
 			}
 			// Move's down
 			else if (directions1 == 's'){
 				ALT_SEM_PEND(Snake_Length,0);
-				for(i = 0; i <= s->length; i++){
+				for(i = 0; i <= s.length; i++){
 				ALT_SEM_PEND(Snake_Loc, 0);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->loc[i]->x,s->loc[i]->y,s->loc[i]->x+6,s->loc[i]->y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->loc[i]->x,s->loc[i]->y+8,s->loc[i]->x+6,s->loc[i]->y+14,collor,collor);
-				s1->loc[i]->y = s1->loc[i]->y+8;
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y,s.loc[i].x+6,s.loc[i].y+6,0x0000,0x0000);
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y+8,s.loc[i].x+6,s.loc[i].y+14,collor,collor);
+				s1.loc[i].y = s1.loc[i].y+8;
 				ALT_SEM_POST(Snake_Loc);
 				}
 				ALT_SEM_POST(Snake_Length);
@@ -557,27 +563,27 @@ void MoveSnake(void* the_snake){
 			// Move's right
 			else if (directions1 == 'd'){
 				ALT_SEM_PEND(Snake_Length,0);
-				for(i = 0; i <= s->length; i++){
+				for(i = 0; i <= s.length; i++){
 				ALT_SEM_PEND(Snake_Loc, 0);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->loc[i]->x,s->loc[i]->y,s->loc[i]->x+6,s->loc[i]->y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->loc[i]->x+8,s->loc[i]->y,s->loc[i]->x+14,s->loc[i]->y+6,collor,collor);
-				s1->loc[i]->x = s1->loc[i]->x+8;
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y,s.loc[i].x+6,s.loc[i].y+6,0x0000,0x0000);
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x+8,s.loc[i].y,s.loc[i].x+14,s.loc[i].y+6,collor,collor);
+				s1.loc[i].x = s1.loc[i].x+8;
 				ALT_SEM_POST(Snake_Loc);
 				}
 				ALT_SEM_POST(Snake_Length);
 			}
 			ALT_SEM_POST(directions1_sem);
 		}
-		if (s->id == 2){
+		if (s.id == 2){
 			ALT_SEM_PEND(directions2_sem, 0);
 			// Move's up
 			if (directions2 == 'u'){
 				ALT_SEM_PEND(Snake_Length,0);
-				for(i = 0; i <= s->length; i++){
+				for(i = 0; i <= s.length; i++){
 				ALT_SEM_PEND(Snake_Loc, 0);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->loc[i]->x,s->loc[i]->y,s->loc[i]->x+6,s->loc[i]->y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->loc[i]->x,s->loc[i]->y-8,s->loc[i]->x+6,s->loc[i]->y-2,0x0ff0,0x0ff0);
-				s2->loc[i]->y = s2->loc[i]->y-8;
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y,s.loc[i].x+6,s.loc[i].y+6,0x0000,0x0000);
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y-8,s.loc[i].x+6,s.loc[i].y-2,0x0ff0,0x0ff0);
+				s2.loc[i].y = s2.loc[i].y-8;
 				ALT_SEM_POST(Snake_Loc);
 				}
 				ALT_SEM_POST(Snake_Length);
@@ -585,11 +591,11 @@ void MoveSnake(void* the_snake){
 			// Move's left
 			else if (directions2 == 'l'){
 				ALT_SEM_PEND(Snake_Length,0);
-				for(i = 0; i <= s->length; i++){
+				for(i = 0; i <= s.length; i++){
 				ALT_SEM_PEND(Snake_Loc, 0);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->loc[i]->x,s->loc[i]->y,s->loc[i]->x+6,s->loc[i]->y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->loc[i]->x-8,s->loc[i]->y,s->loc[i]->x-2,s->loc[i]->y+6,0x0ff0,0x0ff0);
-				s2->loc[i]->x = s2->loc[i]->x-8;
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y,s.loc[i].x+6,s.loc[i].y+6,0x0000,0x0000);
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x-8,s.loc[i].y,s.loc[i].x-2,s.loc[i].y+6,0x0ff0,0x0ff0);
+				s2.loc[i].x = s2.loc[i].x-8;
 				ALT_SEM_POST(Snake_Loc);
 				}
 				ALT_SEM_POST(Snake_Length);
@@ -597,11 +603,11 @@ void MoveSnake(void* the_snake){
 			// Move's down
 			else if (directions2 == 'z'){
 				ALT_SEM_PEND(Snake_Length,0);
-				for(i = 0; i <= s->length; i++){
+				for(i = 0; i <= s.length; i++){
 				ALT_SEM_PEND(Snake_Loc, 0);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->loc[i]->x,s->loc[i]->y,s->loc[i]->x+6,s->loc[i]->y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->loc[i]->x,s->loc[i]->y+8,s->loc[i]->x+6,s->loc[i]->y+14,0x0ff0,0x0ff0);
-				s2->loc[i]->y = s2->loc[i]->y+8;
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y,s.loc[i].x+6,s.loc[i].y+6,0x0000,0x0000);
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y+8,s.loc[i].x+6,s.loc[i].y+14,0x0ff0,0x0ff0);
+				s2.loc[i].y = s2.loc[i].y+8;
 				ALT_SEM_POST(Snake_Loc);
 				}
 				ALT_SEM_POST(Snake_Length);
@@ -610,18 +616,18 @@ void MoveSnake(void* the_snake){
 			else if (directions2 == 'r'){
 
 				ALT_SEM_PEND(Snake_Length,0);
-				for(i = 0; i <= s->length; i++){
+				for(i = 0; i <= s.length; i++){
 				ALT_SEM_PEND(Snake_Loc, 0);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->loc[i]->x,s->loc[i]->y,s->loc[i]->x+6,s->loc[i]->y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s->loc[i]->x+8,s->loc[i]->y,s->loc[i]->x+14,s->loc[i]->y+6,0x0ff0,0x0ff0);
-				s2->loc[i]->x = s2->loc[i]->x+8;
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y,s.loc[i].x+6,s.loc[i].y+6,0x0000,0x0000);
+				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x+8,s.loc[i].y,s.loc[i].x+14,s.loc[i].y+6,0x0ff0,0x0ff0);
+				s2.loc[i].x = s2.loc[i].x+8;
 				ALT_SEM_POST(Snake_Loc);
 				}
 				ALT_SEM_POST(Snake_Length);
 			}
 			ALT_SEM_POST(directions2_sem);
-
 */
+
 
 	if (s.id == 1){
 		ALT_SEM_PEND(directions1_sem, 0);
@@ -645,7 +651,7 @@ void MoveSnake(void* the_snake){
 			s1.loc[i].x = s1.loc[i].x+8;
 			printf("Volgende locatie : x = %d y = %d\n",s1.loc[0].x,s1.loc[0].y);
 		}
-
+		ALT_SEM_POST(directions1_sem);
 
 
 		ALT_SEM_PEND(directions1_sem, 0);
@@ -681,6 +687,17 @@ void MoveSnake(void* the_snake){
 /************************************************************************/
 
 void GameOver(void* pdata){
+	OSTaskDel(READ_KEYBOARD_PRIORITY);
+
+	OSTaskDel(MOVE_SNAKE_PRIORITY);
+	//OSTaskDel(MOVE_SNAKE_PRIORITY+1);
+
+	OSTaskDel(BORDER_CHECK_PRIORITY);
+	//OSTaskDel(BORDER_CHECK_PRIORITY+1);
+
+	directions1 = 0;
+	s1 = CreateSnake(1);
+
 	// Clear screen
 	alt_up_pixel_buffer_dma_clear_screen(vgapixel, BLACK);
 	alt_up_video_dma_screen_fill(vgachar, BLACK, 0);
@@ -691,7 +708,7 @@ void GameOver(void* pdata){
 	alt_up_video_dma_draw_string(vgachar, GameOverString, 35,30, 0);
 
 	ALT_SEM_PEND(menu_sem, 0);
-	menu_id = '2'; // make keyboard responsive
+	menu_id = 2; // make keyboard responsive
 	ALT_SEM_POST(menu_sem);
 
 	  OSTaskCreateExt(ReadKeyboardMenu,
@@ -715,18 +732,9 @@ void GameOver(void* pdata){
 	OSTimeDlyHMSM(0,0,2,0);
 
 	strcpy(GameOverString, "Press enter to continue");
-	alt_up_video_dma_draw_string(vgachar, GameOverString, 38,30, 0);
-
-	OSTaskDelReq(READ_KEYBOARD_PRIORITY);
-
-	OSTaskDelReq(MOVE_SNAKE_PRIORITY);
-	OSTaskDelReq(MOVE_SNAKE_PRIORITY+1);
-
-	OSTaskDelReq(BORDER_CHECK_PRIORITY);
-	OSTaskDelReq(BORDER_CHECK_PRIORITY+1);
+	alt_up_video_dma_draw_string(vgachar, GameOverString, 28,32, 0);
 
 	OSTaskDel(OS_PRIO_SELF);
-	// delete other tasks and self.
 }
 
 
@@ -826,7 +834,6 @@ void MainMenu(void* pdata){
 
 
 void StartSinglePlayer(void* pdata){
-	int count = 0;
 
 	// Clear screen
 	alt_up_pixel_buffer_dma_clear_screen(vgapixel, BLACK);
@@ -834,7 +841,7 @@ void StartSinglePlayer(void* pdata){
 	alt_up_video_dma_screen_fill(vgachar, BLACK, 1);
 
 	// Create Snake
-	snake s1 = CreateSnake(1);
+	s1 = CreateSnake(1);
 
 	// Create tasks for single player
 	OSTaskCreateExt(CreateField,
@@ -875,7 +882,6 @@ void StartSinglePlayer(void* pdata){
 */
 		 // TO DO
 		 // Grow task
-
 	// Ask to press up from both players
 	char AskPressUpp[20];
 	strcpy(AskPressUpp, "Ready?");
@@ -890,7 +896,7 @@ while(1){
 	ALT_SEM_PEND(directions1_sem, 0);
 	if (directions1 == 'w'){
 		alt_up_video_dma_draw_string(vgachar, Player1PressUpp, 70,26, 1);
-		OSTimeDlyHMSM(0, 0, 2, 0);
+		OSTimeDlyHMSM(0, 0, 1, 0);
 
 		// clear words
 		strcpy(AskPressUpp, "      ");
@@ -900,7 +906,7 @@ while(1){
 		strcpy(Player1PressUpp, "      ");
 		alt_up_video_dma_draw_string(vgachar, Player1PressUpp, 70,26, 1);
 
-		// set direction to d
+		// set direction to 0
 		directions1 = 0;
 
 		// start count down
