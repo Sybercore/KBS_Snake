@@ -60,7 +60,7 @@ char text_top_row[40] = "-Snake-\0";
 
 /* Snake struct */
 typedef struct snakeparts snake;
-typedef struct applelocation *apple;
+typedef struct applelocation apple;
 typedef struct locations location;
 
 typedef struct locations{
@@ -384,13 +384,14 @@ snake CreateSnake(int id){
 	/* malloc space for the snake */
 	//new_snake = (snake)malloc(sizeof(struct snakeparts));
 
-	new_snake.length = 0;
+	new_snake.length = 3;
 	/* Set variables of the snake */
 	new_snake.id = id;
 	if (new_snake.id == 1)
 	{
 		new_snake.loc[0].x = 67;
 		new_snake.loc[0].y = 25;
+
 	}
 	if (new_snake.id == 2){
 		new_snake.loc[0].x = 251;
@@ -403,15 +404,14 @@ snake CreateSnake(int id){
 void AddSnake(snake head){
 	int i;
 	location temp;
-	if(head.id == 1){
-		//temp = s1.loc;
+		temp = s1.loc[0];
 		for(i = 0; i < s1.length;i++){
 			s1.loc[i+1] = s1.loc[i];
 			printf("%d %d\n",s1.loc[i].x,s1.loc[i].y);
 		}
+		s1.loc[0] = temp;
 		//s1->loc[0] = temp;
-	}
-
+/*
 	if(head.id == 2){
 		//temp = s2.loc;
 			for(i = 0; i < s2.length;i++){
@@ -421,7 +421,7 @@ void AddSnake(snake head){
 			//s2->loc[0] = temp;
 		}
 
-
+*/
 
 }
 
@@ -440,7 +440,7 @@ void MoveSnake(void* the_snake){
 
 	/* Declare variables */
 	snake s = *((snake*) the_snake);
-	int i = 0;
+	int i;
 
 	printf("%d", directions1);
 /*
@@ -468,14 +468,15 @@ void MoveSnake(void* the_snake){
 	 //alt_up_pixel_buffer_dma_draw_box(vgapixel,51+216,9+216,57+216,15+216,collor,collor); // lower left corner
 
 	// printf("%d",s->id);
-/*
-		if(s->id == 1){
-			ALT_SEM_PEND(Apple_Loc, 0);
-		if(s->loc[0]->x == a->x && s->loc[0]->y == a->y){
-			ALT_SEM_PEND(Snake_Length, 0);
-							AddSnake(s1);
-							s1->length++;
-							printf("Apple Eaten snake1 = %d\n", s1->length);
+
+
+
+
+
+		if(s1.loc[0].x == a.x && s1.loc[0].y == a.y){
+							//AddSnake(s1);
+							//s1.length++;
+							printf("Apple Eaten snake1 = %d\n", s1.length);
 							OSTaskCreateExt(GenerateApple,
 							  	        NULL,
 							  	        (void *)&GenerateApple_stk[TASK_STACKSIZE-1],
@@ -485,18 +486,15 @@ void MoveSnake(void* the_snake){
 							  	        TASK_STACKSIZE,
 							  	        NULL,
 							  	        0);
-
 			}
-			ALT_SEM_POST(Snake_Length);
-		}
-		ALT_SEM_POST(Apple_Loc);
-		if(s->id == 2){
+
+/*
 		ALT_SEM_PEND(Apple_Loc, 0);
-		if(s->loc[0]->x == a->x && s->loc[0]->y == a->y){
+		if(s2.loc[0].x == a.x && s2.loc[0].y == a.y){
 			ALT_SEM_PEND(Snake_Length, 0);
-							AddSnake(s2);
-							s2->length++;
-							printf("Apple Eaten snake2 = %d\n", s2->length);
+							//AddSnake(s2);
+							s2.length++;
+							printf("Apple Eaten snake2 = %d\n", s2.length);
 							OSTaskCreateExt(GenerateApple,
 									  	        NULL,
 									  	        (void *)&GenerateApple_stk[TASK_STACKSIZE-1],
@@ -508,10 +506,9 @@ void MoveSnake(void* the_snake){
 									  	        0);
 						}
 		ALT_SEM_POST(Snake_Length);
-		}
 		ALT_SEM_POST(Apple_Loc);
-*/
 
+*/
 /*
 		if (s.id == 1){
 			ALT_SEM_PEND(directions1_sem, 0);
@@ -632,24 +629,40 @@ void MoveSnake(void* the_snake){
 	if (s.id == 1){
 		ALT_SEM_PEND(directions1_sem, 0);
 		if (directions1 == 'w'){
-			 printf("Start locatie : x = %d y = %d\n",s1.loc[0].x,s1.loc[0].y);
+			 printf("Start locatie : x = %d y = %d\n",s1.loc[i].x,s1.loc[i].y);
+			 //for(i=0; i <= s1.length;i++){
+			 alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[i].x,s1.loc[i].y,s1.loc[i].x+6,s1.loc[i].y+6,0x0000,0x0000);
 			 s1.loc[i].y = s1.loc[i].y-8;
-			 printf("Volgende locatie : x = %d y = %d\n",s1.loc[0].x,s1.loc[0].y);
+			 alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[i].x,s1.loc[i].y,s1.loc[i].x+6,s1.loc[i].y+6,collor,collor);
+			 //}
+			 printf("Volgende locatie : x = %d y = %d\n",s1.loc[i].x,s1.loc[i].y);
 		}
 		else if (directions1 == 'a'){
-			printf("Start locatie : x = %d y = %d\n",s1.loc[0].x,s1.loc[0].y);
+			printf("Start locatie : x = %d y = %d\n",s1.loc[i].x,s1.loc[i].y);
+			//for(i=0; i <= s1.length;i++){
+			alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[i].x,s1.loc[i].y,s1.loc[i].x+6,s1.loc[i].y+6,0x0000,0x0000);
 			s1.loc[i].x = s1.loc[i].x-8;
-			printf("Volgende locatie : x = %d y = %d\n",s1.loc[0].x,s1.loc[0].y);
+			alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[i].x,s1.loc[i].y,s1.loc[i].x+6,s1.loc[i].y+6,collor,collor);
+			//}
+			printf("Volgende locatie : x = %d y = %d\n",s1.loc[i].x,s1.loc[i].y);
 		}
 		else if (directions1 == 's'){
-			printf("Start locatie : x = %d y = %d\n",s1.loc[0].x,s1.loc[0].y);
+			printf("Start locatie : x = %d y = %d\n",s1.loc[i].x,s1.loc[i].y);
+			//for(i=0; i <= s1.length;i++){
+			alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[i].x,s1.loc[i].y,s1.loc[i].x+6,s1.loc[i].y+6,0x0000,0x0000);
 			s1.loc[i].y = s1.loc[i].y+8;
-			printf("Volgende locatie : x = %d y = %d\n",s1.loc[0].x,s1.loc[0].y);
+			alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[i].x,s1.loc[i].y,s1.loc[i].x+6,s1.loc[i].y+6,collor,collor);
+			//}
+			printf("Volgende locatie : x = %d y = %d\n",s1.loc[i].x,s1.loc[i].y);
 		}
 		else if (directions1 == 'd'){
-			printf("Start locatie : x = %d y = %d\n",s1.loc[0].x,s1.loc[0].y);
+			printf("Start locatie : x = %d y = %d\n",s1.loc[i].x,s1.loc[i].y);
+			//for(i=0; i <= s1.length;i++){
+			alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[i].x,s1.loc[i].y,s1.loc[i].x+6,s1.loc[i].y+6,0x0000,0x0000);
 			s1.loc[i].x = s1.loc[i].x+8;
-			printf("Volgende locatie : x = %d y = %d\n",s1.loc[0].x,s1.loc[0].y);
+			alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[i].x,s1.loc[i].y,s1.loc[i].x+6,s1.loc[i].y+6,collor,collor);
+			//}
+			printf("Volgende locatie : x = %d y = %d\n",s1.loc[i].x,s1.loc[i].y);
 		}
 		ALT_SEM_POST(directions1_sem);
 
@@ -746,9 +759,9 @@ void GenerateApple(void* pdata){
 	int xLocation = rand()% 28;
 
 // if apple is eaten
-	a->x =  51+(xLocation*8);
-	a->y =  9+(yLocation*8);
-	alt_up_pixel_buffer_dma_draw_box(vgapixel,51+(xLocation*8),9+(yLocation*8),57+(xLocation*8),15+(yLocation*8),0xf000,0xf000);
+	a.x =  51+(xLocation*8);
+	a.y =  9+(yLocation*8);
+	alt_up_pixel_buffer_dma_draw_box(vgapixel,a.x,a.y,a.x + 6,a.y+6,0xf000,0xf000);
 // else
 	//do nothing;
 	printf("Appel created\n");
@@ -870,7 +883,7 @@ void StartSinglePlayer(void* pdata){
 			TASK_STACKSIZE,
 			NULL,
 			0);
-/*
+
 	OSTaskCreateExt(GenerateApple,
 			NULL,
 			(void *)&GenerateApple_stk[TASK_STACKSIZE-1],
@@ -879,7 +892,7 @@ void StartSinglePlayer(void* pdata){
 			TASK_STACKSIZE,
 			NULL,
 			0);
-*/
+
 		 // TO DO
 		 // Grow task
 	// Ask to press up from both players
