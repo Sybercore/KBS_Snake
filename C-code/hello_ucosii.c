@@ -58,7 +58,7 @@ alt_up_character_lcd_dev *lcd_dev;
 volatile int * PS2_ptr = (int *) 0x10000100;
 char text_top_row[40] = "-Snake-\0";
 
-/* Snake struct */
+/*  Struct's  */
 typedef struct snakeparts snake;
 typedef struct applelocation apple;
 typedef struct locations location;
@@ -67,16 +67,17 @@ typedef struct locations{
 	int x;
 	int y;
 } locations;
+
 typedef struct snakeparts{
 	int id;
 	location loc[290];
 	int length;
 } snakeparts;
 
-struct applelocation{
+typedef struct applelocation{
 	int x;
 	int y;
-};
+} applelocation;
 
 /* Variables */
 snake s1;
@@ -88,7 +89,7 @@ char Eaten = 0;
 char menu_id = 0;
 
 /* Prototypes */
-void ReadKeyboard(void* id);
+void ReadKeyboard(void* pdata);
 void CreateField (void* the_snake);
 void MoveSnake(void* the_snake);
 void BorderCheck(void* the_snake);
@@ -103,16 +104,16 @@ void StartSinglePlayer(void* pdata);
 
 /************************************************************************/
 /*
-	Prototype:		void ReadKeyboard(void* id)
+	Prototype:		void ReadKeyboard(void* pdata)
 	Include:		N/A
-	Parameters:		id - The id of the snake.
+	Parameters:		N/A
 	Returns:		Nothing
 	Description:	Reads the keyboard input and sets the corresponding
 					semaphore to the right direction.
 */
 /************************************************************************/
 
-void ReadKeyboard(void* id){
+void ReadKeyboard(void* pdata){
 	/* Declare variables */
 	int PS2_data, RVALID;
 	int byte = 0;
@@ -190,6 +191,17 @@ void ReadKeyboard(void* id){
 }
 
 
+/************************************************************************/
+/*
+	Prototype:		void ReadKeyboardMenu(void* pdata)
+	Include:		N/A
+	Parameters:		N/A
+	Returns:		Nothing
+	Description:	Reads the keyboard input, makes it possible to start
+					a game and to go back to the main menu.
+*/
+/************************************************************************/
+
 void ReadKeyboardMenu(void* pdata){
 	/* Declare variables */
 	int PS2_data, RVALID;
@@ -214,12 +226,12 @@ void ReadKeyboardMenu(void* pdata){
 						// Space
 						if (count >= 2){
 							if (loc == 0){
-								// Top word
+								// Bottom word
 								alt_up_pixel_buffer_dma_draw_box(vgapixel,130,139,135,144,BLACK,BLACK);
 								alt_up_pixel_buffer_dma_draw_box(vgapixel,130,119,135,124,MainGreen,MainGreen);
 								loc = loc + 1;
 							} else if (loc == 1){
-								// Bottom word
+								// Top word
 								alt_up_pixel_buffer_dma_draw_box(vgapixel,130,119,135,124,BLACK,BLACK);
 								alt_up_pixel_buffer_dma_draw_box(vgapixel,130,139,135,144,MainGreen,MainGreen);
 								loc = loc - 1;
@@ -234,8 +246,9 @@ void ReadKeyboardMenu(void* pdata){
 							if (loc == 1){
 								// Start single player
 								ALT_SEM_PEND(menu_sem, 0);
-								menu_id = 'l'; // Create Game
+								menu_id = 1; // Create Game
 								ALT_SEM_POST(menu_sem);
+
 								OSTaskCreateExt(StartSinglePlayer,
 										NULL,
 										(void *) &StartSinglePlayer_stk[TASK_STACKSIZE - 1],
@@ -250,7 +263,7 @@ void ReadKeyboardMenu(void* pdata){
 							} else if (loc == 0){
 								// Start multiplier
 								ALT_SEM_PEND(menu_sem, 0);
-								menu_id = '1'; // Create Game
+								menu_id = 2; // Create Game
 								ALT_SEM_POST(menu_sem);
 								// TO DO
 								// Task StartMultiplier starten
@@ -258,7 +271,7 @@ void ReadKeyboardMenu(void* pdata){
 							count = 0;
 						}
 					}
-				} else if (menu_id == 2){
+				} else if (menu_id == 3){
 					switch(byte){
 						case 0x5A:
 						// Enter
@@ -274,7 +287,7 @@ void ReadKeyboardMenu(void* pdata){
 							        0);
 
 							  ALT_SEM_PEND(menu_sem, 0);
-							  menu_id = 0; // Create Game
+							  menu_id = 0; // Go back to the main menu
 							  ALT_SEM_POST(menu_sem);
 							  count = 0;
 						}
@@ -299,11 +312,13 @@ void ReadKeyboardMenu(void* pdata){
 void CreateField(void* the_snake){
 	int x=42, y =0,i = 0;
 
+	/* Horizontal line's */
 	for(i = 0 ; i < 30; i++){
 		y = y +8;
 		alt_up_pixel_buffer_dma_draw_hline(vgapixel,50,X_MAX_SIZE,y,BLUE,BLUE);
 	}
 
+	/* Vertical line's */
 	for(i = 0 ; i < 29; i++){
 		x = x +8;
 		alt_up_pixel_buffer_dma_draw_vline(vgapixel,x,8,Y_MAX_SIZE,BLUE,BLUE);
@@ -311,6 +326,7 @@ void CreateField(void* the_snake){
 
 	snake s = *((snake*) the_snake);
 
+	/* Draw snake's */
 	if (s.id == 1){
 		alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[0].x,s.loc[0].y,s.loc[0].x+6,s.loc[0].y+6,collor,collor);
 	} else if (s.id == 2){
@@ -334,16 +350,17 @@ void BorderCheck(void* the_snake){
 	/* Declare variables */
 	snake s = *((snake*) the_snake);
 
-
 	/* Starts checking if the snake is outside the border */
 	while (1){
 		if (s.id == 1){
 			ALT_SEM_PEND(Snake_Loc, 0);
 			if (s1.loc[0].x < 51 || s1.loc[0].x > 267){
+				/* Snake is outside the border */
 				ALT_SEM_PEND(directions1_sem, 0);
 				directions1 = 'K';
 				ALT_SEM_POST(directions1_sem);
 			} else if (s1.loc[0].y < 9 || s1.loc[0].y > 225){
+				/* Snake is outside the border */
 				ALT_SEM_PEND(directions1_sem, 0);
 				directions1 = 'K';
 				ALT_SEM_POST(directions1_sem);
@@ -352,10 +369,12 @@ void BorderCheck(void* the_snake){
 		}
 		if (s.id == 2){
 			if (s2.loc[0].x < 51 || s2.loc[0].x > 267){
+				/* Snake is outside the border */
 				ALT_SEM_PEND(directions2_sem, 0);
 				directions2 = 'K';
 				ALT_SEM_POST(directions2_sem);
 			} else if (s2.loc[0].y < 9 || s2.loc[0].y > 225){
+				/* Snake is outside the border */
 				ALT_SEM_PEND(directions2_sem, 0);
 				directions2 = 'K';
 				ALT_SEM_POST(directions2_sem);
@@ -381,25 +400,37 @@ snake CreateSnake(int id){
 	/* Declare variables */
 	snake new_snake;
 
-	/* malloc space for the snake */
-	//new_snake = (snake)malloc(sizeof(struct snakeparts));
-
-	new_snake.length = 3;
 	/* Set variables of the snake */
 	new_snake.id = id;
+	new_snake.length = 0;
+
 	if (new_snake.id == 1)
 	{
+		/* Set location snake 1 */
 		new_snake.loc[0].x = 67;
 		new_snake.loc[0].y = 25;
 
 	}
 	if (new_snake.id == 2){
+		/* Set location snake 2 */
 		new_snake.loc[0].x = 251;
 		new_snake.loc[0].y = 209;
 	}
+
 	printf("Snake %d created loc: %d %d\n",id, new_snake.loc[0].x, new_snake.loc[0].y);
 	return new_snake;
 }
+
+
+/************************************************************************/
+/*
+	Prototype:		void AddSnake(snake head)
+	Include:		N/A
+	Parameters:		head - The front of the snake
+	Returns:		Nothing
+	Description:
+*/
+/************************************************************************/
 
 void AddSnake(snake head){
 	int i;
@@ -467,25 +498,19 @@ void MoveSnake(void* the_snake){
 	 //alt_up_pixel_buffer_dma_draw_box(vgapixel,51,9+216,57,15+216,collor,collor); // lower right corner
 	 //alt_up_pixel_buffer_dma_draw_box(vgapixel,51+216,9+216,57+216,15+216,collor,collor); // lower left corner
 
-	// printf("%d",s->id);
 
-
-
-
-
-		if(s1.loc[0].x == a.x && s1.loc[0].y == a.y){
-							//AddSnake(s1);
-							//s1.length++;
-							printf("Apple Eaten snake1 = %d\n", s1.length);
-							OSTaskCreateExt(GenerateApple,
-							  	        NULL,
-							  	        (void *)&GenerateApple_stk[TASK_STACKSIZE-1],
-							  	        GENERATE_APPLE_PRIORITY,
-							  	        GENERATE_APPLE_PRIORITY,
-							  	        GenerateApple_stk,
-							  	        TASK_STACKSIZE,
-							  	        NULL,
-							  	        0);
+	if(s1.loc[0].x == a.x && s1.loc[0].y == a.y){
+		//AddSnake(s1);
+		//s1.length++;
+		printf("Apple Eaten snake1 = %d\n", s1.length);
+		OSTaskCreateExt(GenerateApple,
+				NULL,
+				(void *)&GenerateApple_stk[TASK_STACKSIZE-1],
+				GENERATE_APPLE_PRIORITY, GENERATE_APPLE_PRIORITY,
+				GenerateApple_stk,
+				TASK_STACKSIZE,
+				NULL,
+				0);
 			}
 
 /*
@@ -507,124 +532,7 @@ void MoveSnake(void* the_snake){
 						}
 		ALT_SEM_POST(Snake_Length);
 		ALT_SEM_POST(Apple_Loc);
-
 */
-/*
-		if (s.id == 1){
-			ALT_SEM_PEND(directions1_sem, 0);
-			// Move's up
-			if (directions1 == 'w'){
-				ALT_SEM_PEND(Snake_Length,0);
-				for(i = 0; i <= s.length; i++){
-				ALT_SEM_PEND(Snake_Loc, 0);
-
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y,s.loc[i].x+6,s.loc[i].y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y-8,s.loc[i].x+6,s.loc[i].y-2,collor,collor);
-
-				s1.loc[i].y = s1.loc[i].y-8;
-				ALT_SEM_POST(Snake_Loc);
-				}
-				ALT_SEM_POST(Snake_Length);
-
-			}
-			// Move's left
-			else if (directions1 == 'a'){
-				ALT_SEM_PEND(Snake_Length,0);
-				for(i = 0; i <= s.length; i++){
-				ALT_SEM_PEND(Snake_Loc, 0);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y,s.loc[i].x+6,s.loc[i].y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x-8,s.loc[i].y,s.loc[i].x-2,s.loc[i].y+6,collor,collor);
-				s1.loc[i].x = s1.loc[i].x-8;
-				ALT_SEM_POST(Snake_Loc);
-				}
-				ALT_SEM_POST(Snake_Length);
-				/*
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y,s.loc[i].x+6,s.loc[i].y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x-8,s.loc[i].y,s.loc[i].x-2,s.loc[i].y+6,0x0ff0,0x0ff0);
-				s2.loc[i].x = s2.loc[i].x-8;
-
-
-			}
-			// Move's down
-			else if (directions1 == 's'){
-				ALT_SEM_PEND(Snake_Length,0);
-				for(i = 0; i <= s.length; i++){
-				ALT_SEM_PEND(Snake_Loc, 0);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y,s.loc[i].x+6,s.loc[i].y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y+8,s.loc[i].x+6,s.loc[i].y+14,collor,collor);
-				s1.loc[i].y = s1.loc[i].y+8;
-				ALT_SEM_POST(Snake_Loc);
-				}
-				ALT_SEM_POST(Snake_Length);
-			}
-			// Move's right
-			else if (directions1 == 'd'){
-				ALT_SEM_PEND(Snake_Length,0);
-				for(i = 0; i <= s.length; i++){
-				ALT_SEM_PEND(Snake_Loc, 0);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y,s.loc[i].x+6,s.loc[i].y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x+8,s.loc[i].y,s.loc[i].x+14,s.loc[i].y+6,collor,collor);
-				s1.loc[i].x = s1.loc[i].x+8;
-				ALT_SEM_POST(Snake_Loc);
-				}
-				ALT_SEM_POST(Snake_Length);
-			}
-			ALT_SEM_POST(directions1_sem);
-		}
-		if (s.id == 2){
-			ALT_SEM_PEND(directions2_sem, 0);
-			// Move's up
-			if (directions2 == 'u'){
-				ALT_SEM_PEND(Snake_Length,0);
-				for(i = 0; i <= s.length; i++){
-				ALT_SEM_PEND(Snake_Loc, 0);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y,s.loc[i].x+6,s.loc[i].y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y-8,s.loc[i].x+6,s.loc[i].y-2,0x0ff0,0x0ff0);
-				s2.loc[i].y = s2.loc[i].y-8;
-				ALT_SEM_POST(Snake_Loc);
-				}
-				ALT_SEM_POST(Snake_Length);
-			}
-			// Move's left
-			else if (directions2 == 'l'){
-				ALT_SEM_PEND(Snake_Length,0);
-				for(i = 0; i <= s.length; i++){
-				ALT_SEM_PEND(Snake_Loc, 0);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y,s.loc[i].x+6,s.loc[i].y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x-8,s.loc[i].y,s.loc[i].x-2,s.loc[i].y+6,0x0ff0,0x0ff0);
-				s2.loc[i].x = s2.loc[i].x-8;
-				ALT_SEM_POST(Snake_Loc);
-				}
-				ALT_SEM_POST(Snake_Length);
-			}
-			// Move's down
-			else if (directions2 == 'z'){
-				ALT_SEM_PEND(Snake_Length,0);
-				for(i = 0; i <= s.length; i++){
-				ALT_SEM_PEND(Snake_Loc, 0);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y,s.loc[i].x+6,s.loc[i].y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y+8,s.loc[i].x+6,s.loc[i].y+14,0x0ff0,0x0ff0);
-				s2.loc[i].y = s2.loc[i].y+8;
-				ALT_SEM_POST(Snake_Loc);
-				}
-				ALT_SEM_POST(Snake_Length);
-			}
-			// Move's right
-			else if (directions2 == 'r'){
-
-				ALT_SEM_PEND(Snake_Length,0);
-				for(i = 0; i <= s.length; i++){
-				ALT_SEM_PEND(Snake_Loc, 0);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x,s.loc[i].y,s.loc[i].x+6,s.loc[i].y+6,0x0000,0x0000);
-				alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[i].x+8,s.loc[i].y,s.loc[i].x+14,s.loc[i].y+6,0x0ff0,0x0ff0);
-				s2.loc[i].x = s2.loc[i].x+8;
-				ALT_SEM_POST(Snake_Loc);
-				}
-				ALT_SEM_POST(Snake_Length);
-			}
-			ALT_SEM_POST(directions2_sem);
-*/
-
 
 	if (s.id == 1){
 		ALT_SEM_PEND(directions1_sem, 0);
@@ -667,6 +575,7 @@ void MoveSnake(void* the_snake){
 		ALT_SEM_POST(directions1_sem);
 
 
+		/* Check's if the snake has been outside the border */
 		ALT_SEM_PEND(directions1_sem, 0);
 		ALT_SEM_PEND(directions2_sem, 0);
 		if (directions1 == 'K' || directions2 == 'K'){
@@ -690,38 +599,47 @@ void MoveSnake(void* the_snake){
 
 /************************************************************************/
 /*
-	Prototype:
+	Prototype:		void GameOver(void* pdata)
 	Include:		<altera_up_avalon_video_pixel_buffer_dma.h>
 					<altera_up_avalon_video_dma_controller.h>
-	Parameters:
+	Parameters:		N/A
 	Returns:		Nothing
-	Description:
+	Description:	Deletes the game tasks, resets value's and shows
+					game over screen.
 */
 /************************************************************************/
 
 void GameOver(void* pdata){
-	OSTaskDel(READ_KEYBOARD_PRIORITY);
+	ALT_SEM_PEND(menu_sem, 0);
+	if (menu_id == 1){
+		OSTaskDel(READ_KEYBOARD_PRIORITY);
+		OSTaskDel(MOVE_SNAKE_PRIORITY);
+		OSTaskDel(BORDER_CHECK_PRIORITY);
+	} else if (menu_id == 2){
+		OSTaskDel(READ_KEYBOARD_PRIORITY);
+		OSTaskDel(MOVE_SNAKE_PRIORITY);
+		OSTaskDel(MOVE_SNAKE_PRIORITY+1);
+		OSTaskDel(BORDER_CHECK_PRIORITY);
+		OSTaskDel(BORDER_CHECK_PRIORITY+1);
+	}
+	ALT_SEM_POST(menu_sem);
 
-	OSTaskDel(MOVE_SNAKE_PRIORITY);
-	//OSTaskDel(MOVE_SNAKE_PRIORITY+1);
-
-	OSTaskDel(BORDER_CHECK_PRIORITY);
-	//OSTaskDel(BORDER_CHECK_PRIORITY+1);
-
+	/* Reset variables */
 	directions1 = 0;
 	s1 = CreateSnake(1);
 
-	// Clear screen
+	/* Clear screen */
 	alt_up_pixel_buffer_dma_clear_screen(vgapixel, BLACK);
 	alt_up_video_dma_screen_fill(vgachar, BLACK, 0);
 	alt_up_video_dma_screen_fill(vgachar, BLACK, 1);
 
+	/* Print game over */
 	char GameOverString[25];
 	strcpy(GameOverString, "GAME OVER");
 	alt_up_video_dma_draw_string(vgachar, GameOverString, 35,30, 0);
 
 	ALT_SEM_PEND(menu_sem, 0);
-	menu_id = 2; // make keyboard responsive
+	menu_id = 3; // Make keyboard responsive
 	ALT_SEM_POST(menu_sem);
 
 	  OSTaskCreateExt(ReadKeyboardMenu,
@@ -744,6 +662,7 @@ void GameOver(void* pdata){
 
 	OSTimeDlyHMSM(0,0,2,0);
 
+	/* Draw's press enter to continue */
 	strcpy(GameOverString, "Press enter to continue");
 	alt_up_video_dma_draw_string(vgachar, GameOverString, 28,32, 0);
 
@@ -751,93 +670,115 @@ void GameOver(void* pdata){
 }
 
 
+/************************************************************************/
+/*
+	Prototype:		void GenerateApple(void* pdata)
+	Include:		N/A
+	Parameters:		N/A
+	Returns:		Nothing
+	Description:	Generates an apple at a random location.
+*/
+/************************************************************************/
+
 void GenerateApple(void* pdata){
 	ALT_SEM_PEND(Apple_Loc, 0);
+	/* Randomizer */
 	srand(time());
 	int yLocation = rand() % 28;
 	srand(time());
 	int xLocation = rand()% 28;
 
-// if apple is eaten
+	/* Set's the location in the struct and draw's the apple */
 	a.x =  51+(xLocation*8);
 	a.y =  9+(yLocation*8);
 	alt_up_pixel_buffer_dma_draw_box(vgapixel,a.x,a.y,a.x + 6,a.y+6,0xf000,0xf000);
-// else
-	//do nothing;
+
 	printf("Appel created\n");
 	ALT_SEM_POST(Apple_Loc);
 	OSTaskDel(OS_PRIO_SELF);
-
 }
 
 
+/************************************************************************/
+/*
+	Prototype:		void MainMenu(void* pdata)
+	Include:		N/A
+	Parameters:		N/A
+	Returns:		Nothing
+	Description:	Draws the main screen.
+*/
+/************************************************************************/
+
 void MainMenu(void* pdata){
-	// Creating menu strings
+	/* Creating menu strings */
 	char menu_string1[20];
 	char menu_string2[20];
 	char menu_string3[20];
 
+	/* Fill menu strings */
 	strcpy(menu_string1, "SNAKE!");
 	strcpy(menu_string2, "Play");
 	strcpy(menu_string3, "Multiplier");
 
-	// Creating player 1 strings
+	/* Creating player 1 strings */
 	char player1_string1[20];
 	char player1_string2[20];
 	char player1_string3[21];
 
+	/* Fill player 1 strings */
 	strcpy(player1_string1, "Player 1 controls:");
 	strcpy(player1_string2, "w -> up   a -> left");
 	strcpy(player1_string3, "s -> down d -> right");
 
-	// Creating menu control strings
+	/* Creating menu control strings */
 	char menu_controls1[20];
 	char menu_controls2[20];
 	char menu_controls3[20];
 
+	/* Fill menu control strings */
 	strcpy(menu_controls1, "Menu controls:");
 	strcpy(menu_controls2, "space -> next");
 	strcpy(menu_controls3, "enter -> confirm");
 
-	// Creating player 2 strings
+	/* Creating player 2 strings */
 	char player2_string1[20];
 	char player2_string2[20];
 	char player2_string3[21];
 
+	/* Fill player 2 strings */
 	strcpy(player2_string1, "Player 2 controls:");
 	strcpy(player2_string2, "8 -> up   4 -> left");
 	strcpy(player2_string3, "5 -> down 6 -> right");
 
-
-	// Clear screen
+	/* Clear screen */
 	alt_up_video_dma_screen_fill(vgachar, BLACK, 0);
 	alt_up_video_dma_screen_fill(vgachar, BLACK, 1);
 
-	// Draw first option
+	/* Draw first option */
 	alt_up_pixel_buffer_dma_draw_box(vgapixel,145,76,174,86,MainGreen,MainGreen);
 
-	// Draw back box
+	/* Draw back box */
 	alt_up_pixel_buffer_dma_draw_box(vgapixel,130,119,135,124,MainGreen,MainGreen);
 
-	// Menu strings
+	/* Draw menu strings */
 	alt_up_video_dma_draw_string(vgachar, menu_string1, 37,20, 0);
 	alt_up_video_dma_draw_string(vgachar, menu_string2, 35,30, 0);
 	alt_up_video_dma_draw_string(vgachar, menu_string3, 35,35, 0);
 
-	// Horizontal line
+	/* Draws horizontal line */
 	alt_up_pixel_buffer_dma_draw_hline(vgapixel,10,310,210,MainGreen,MainGreen);
 
-	// Player 1 controls
+	/* Draw player 1 controls */
 	alt_up_video_dma_draw_string(vgachar, player1_string1, 3,54, 0);
 	alt_up_video_dma_draw_string(vgachar, player1_string2, 3,56, 0);
 	alt_up_video_dma_draw_string(vgachar, player1_string3, 3,58, 0);
 
-	// Menu controls
+	/* Draw menu controls */
 	alt_up_video_dma_draw_string(vgachar, menu_controls1, 32,54, 0);
 	alt_up_video_dma_draw_string(vgachar, menu_controls2, 32,56, 0);
 	alt_up_video_dma_draw_string(vgachar, menu_controls3, 32,58, 0);
 
-	// Player 2 controls
+	/* Draw player 2 controls */
 	alt_up_video_dma_draw_string(vgachar, player2_string1, 57,54, 0);
 	alt_up_video_dma_draw_string(vgachar, player2_string2, 57,56, 0);
 	alt_up_video_dma_draw_string(vgachar, player2_string3, 57,58, 0);
@@ -846,17 +787,25 @@ void MainMenu(void* pdata){
 }
 
 
-void StartSinglePlayer(void* pdata){
+/************************************************************************/
+/*
+	Prototype:		void StartSinglePlayer(void* pdata)
+	Include:		N/A
+	Parameters:		N/A
+	Returns:		Nothing
+	Description:	Start up the task for the game and does the countdown.
+*/
+/************************************************************************/
 
-	// Clear screen
+void StartSinglePlayer(void* pdata){
+	/* Clear screen */
 	alt_up_pixel_buffer_dma_clear_screen(vgapixel, BLACK);
 	alt_up_video_dma_screen_fill(vgachar, BLACK, 0);
 	alt_up_video_dma_screen_fill(vgachar, BLACK, 1);
 
-	// Create Snake
 	s1 = CreateSnake(1);
 
-	// Create tasks for single player
+	/* Create tasks for single player */
 	OSTaskCreateExt(CreateField,
 			NULL,
 			(void *) &CreateField_stk[TASK_STACKSIZE - 1],
@@ -895,23 +844,26 @@ void StartSinglePlayer(void* pdata){
 
 		 // TO DO
 		 // Grow task
-	// Ask to press up from both players
+
+	/* Ask player to press the 'up' button */
 	char AskPressUpp[20];
 	strcpy(AskPressUpp, "Ready?");
 	alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,20, 0);
 	strcpy(AskPressUpp, "Press 'up'!");
 	alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,22, 0);
 
+	/* If player is ready string */
 	char Player1PressUpp[20];
 	strcpy(Player1PressUpp, "Ready!");
 
 while(1){
 	ALT_SEM_PEND(directions1_sem, 0);
+	/* If player is ready */
 	if (directions1 == 'w'){
 		alt_up_video_dma_draw_string(vgachar, Player1PressUpp, 70,26, 1);
 		OSTimeDlyHMSM(0, 0, 1, 0);
 
-		// clear words
+		/* Clear words on screen */
 		strcpy(AskPressUpp, "      ");
 		alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,20, 0);
 		strcpy(AskPressUpp, "           ");
@@ -919,10 +871,10 @@ while(1){
 		strcpy(Player1PressUpp, "      ");
 		alt_up_video_dma_draw_string(vgachar, Player1PressUpp, 70,26, 1);
 
-		// set direction to 0
+
 		directions1 = 0;
 
-		// start count down
+		/* Start count down */
 		char CountDown[5];
 		strcpy(CountDown, "3!");
 		alt_up_video_dma_draw_string(vgachar, CountDown, 70,22, 0);
@@ -946,11 +898,11 @@ while(1){
 				NULL,
 				0);
 
+		/* Clear 'GO!' */
 		strcpy(CountDown, "   ");
 		alt_up_video_dma_draw_string(vgachar, CountDown, 70,22, 0);
-		OSTimeDlyHMSM(0,0,0,200);
 
-		// at GO clear
+		OSTimeDlyHMSM(0,0,0,200);
 		ALT_SEM_POST(directions1_sem);
 		OSTaskDel(OS_PRIO_SELF);
 	}
