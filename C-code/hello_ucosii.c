@@ -162,7 +162,7 @@ void ReadKeyboard(void* pdata){
 						ALT_SEM_POST(directions1_sem);
 						break;
 					/* Movement keys snake 2 */
-						// Up
+					// Up
 					case 0x75:
 						// 8
 						ALT_SEM_PEND(directions2_sem, 0);
@@ -191,7 +191,7 @@ void ReadKeyboard(void* pdata){
 						ALT_SEM_POST(directions2_sem);
 					}
 				}
-    OSTimeDlyHMSM(0, 0, 0, 120);
+    OSTimeDlyHMSM(0, 0, 0, 90);
 	}
 }
 
@@ -309,7 +309,7 @@ void ReadKeyboardMenu(void* pdata){
 				}
 				count++;
 			}
-		OSTimeDlyHMSM(0, 0, 0, 200);
+		OSTimeDlyHMSM(0, 0, 0, 150);
 	}
 }
 
@@ -342,9 +342,9 @@ void CreateField(void* the_snake){
 
 	/* Draw snake's */
 	if (s.id == 1){
-		alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[0].x,s.loc[0].y,s.loc[0].x+6,s.loc[0].y+6,YELLOW,YELLOW);
-	} else if (s.id == 2){
 		alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[0].x,s.loc[0].y,s.loc[0].x+6,s.loc[0].y+6,GREEN,GREEN);
+	} else if (s.id == 2){
+		alt_up_pixel_buffer_dma_draw_box(vgapixel,s.loc[0].x,s.loc[0].y,s.loc[0].x+6,s.loc[0].y+6,YELLOW,YELLOW);
 	}
 	OSTaskDel(OS_PRIO_SELF);
 }
@@ -448,25 +448,21 @@ snake CreateSnake(int id){
 
 void AddSnake(snake head){
 	int i;
-	location temp;
-		temp = s1.loc[0];
-		for(i = s1.length; i >= 0;i--){
-			s1.loc[i] = s1.loc[i-1];
-			printf("%d %d\n",s1.loc[i].x,s1.loc[i].y);
-		}
-		s1.loc[0] = temp;
-		//s1->loc[0] = temp;
-/*
-	if(head.id == 2){
-		//temp = s2.loc;
-			for(i = 0; i < s2.length;i++){
-				s2.loc[i+1] = s2.loc[i];
-				printf("%d %d\n",s2.loc[i].x,s2.loc[i].y);
-			}
-			//s2->loc[0] = temp;
-		}
 
-*/
+	ALT_SEM_PEND(Snake_Length, 0);
+	ALT_SEM_PEND(Snake_Loc, 0);
+	if (head.id == 1){
+		for (i = s1.length; i >= 1; i--){
+			s1.loc[i] = s1.loc[i-1];
+		}
+	} else if (head.id == 2){
+		for (i = s2.length; i >= 1; i--){
+			s2.loc[i] = s2.loc[i-1];
+		}
+	}
+	ALT_SEM_POST(Snake_Length);
+	ALT_SEM_POST(Snake_Loc);
+
 
 }
 
@@ -488,19 +484,7 @@ void MoveSnake(void* the_snake){
 	int i;
 
 	printf("%d", directions1);
-/*
-	if (s->id == 1){
-	   //for(int i = 0; i < 3; i++){
-		alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y,s->x+6,s->y+6,YELLOW,YELLOW);
-		s->x = s->x+8;
-	  //}
-	} else {
-		//for(int i = 0; i < 3; i++){
-		alt_up_pixel_buffer_dma_draw_box(vgapixel,s->x,s->y,s->x+6,s->y+6,GREEN,GREEN);
-		s->x = s->x+8;
-		//}
-	}
-*/
+
 	while(1){
 	// upper left corner X0,Y0,X1,Y1 : 51,9,57,15
 	// upper right corner X0,Y0,X1,Y1: 267,9,273,15
@@ -514,8 +498,7 @@ void MoveSnake(void* the_snake){
 
 
 	if(s1.loc[0].x == a.x && s1.loc[0].y == a.y){
-		//AddSnake(s1);
-		s1.length++;
+		s1.length = s1.length + 2;
 		printf("Apple Eaten snake1 = %d\n", s1.length);
 		OSTaskCreateExt(GenerateApple,
 				NULL,
@@ -527,101 +510,87 @@ void MoveSnake(void* the_snake){
 				0);
 			}
 
-		if(s2.loc[0].x == a.x && s2.loc[0].y == a.y){
-							//AddSnake(s2);
-							s2.length++;
-							printf("Apple Eaten snake2 = %d\n", s2.length);
-							OSTaskCreateExt(GenerateApple,
-									  	        NULL,
-									  	        (void *)&GenerateApple_stk[TASK_STACKSIZE-1],
-									  	        GENERATE_APPLE_PRIORITY,
-									  	        GENERATE_APPLE_PRIORITY,
-									  	        GenerateApple_stk,
-									  	        TASK_STACKSIZE,
-									  	        NULL,
-									  	        0);
-						}
+	if(s2.loc[0].x == a.x && s2.loc[0].y == a.y){
+		s2.length++;
+		printf("Apple Eaten snake2 = %d\n", s2.length);
+		OSTaskCreateExt(GenerateApple,
+				NULL,
+				(void *)&GenerateApple_stk[TASK_STACKSIZE-1],
+				GENERATE_APPLE_PRIORITY,
+				GENERATE_APPLE_PRIORITY,
+				GenerateApple_stk,
+				TASK_STACKSIZE,
+				NULL,
+				0);
+	}
+
+
 
 	/* Draw the movement of the snake */
 	if (s.id == 1){
 		ALT_SEM_PEND(directions1_sem, 0);
+		if (s1.length == 0){
+			alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[0].x,s1.loc[0].y,s1.loc[0].x+6,s1.loc[0].y+6,BLACK,BLACK);// Last location becomes black
+		} else {
+			// remove last of old snake
+			alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[s1.length].x,s1.loc[s1.length].y,s1.loc[s1.length].x+6,s1.loc[s1.length].y+6,BLACK,BLACK);
+			AddSnake(s1); // edit snake
+		}
+
 		if (directions1 == 'w'){
-			 printf("Start locatie s1 : x = %d y = %d\n",s1.loc[i].x,s1.loc[i].y);
-			 alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[i].x,s1.loc[i].y,s1.loc[i].x+6,s1.loc[i].y+6,BLACK,BLACK);// Last location becomes black
-			 //for(i=0; i < s1.length;i++){
-			 s1.loc[i].y = s1.loc[i].y-8; // Change the location of the snake
-			 alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[i].x,s1.loc[i].y,s1.loc[i].x+6,s1.loc[i].y+6,YELLOW,YELLOW); // Draws snake on new location
-			 //}
-			 printf("Volgende locatie s1 : x = %d y = %d\n",s1.loc[i].x,s1.loc[i].y);
+			 s1.loc[0].y = s1.loc[0].y-8; // Change the location of the snake
 		}
 		else if (directions1 == 'a'){
-			printf("Start locatie s1: x = %d y = %d\n",s1.loc[i].x,s1.loc[i].y);
-			alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[i].x,s1.loc[i].y,s1.loc[i].x+6,s1.loc[i].y+6,BLACK,BLACK);// Last location becomes black
-			//for(i=0; i < s1.length;i++){
-			s1.loc[i].x = s1.loc[i].x-8; // Change the location of the snake
-			alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[i].x,s1.loc[i].y,s1.loc[i].x+6,s1.loc[i].y+6,YELLOW,YELLOW); // Draws snake on new location
-			//}
-			printf("Volgende locatie s1: x = %d y = %d\n",s1.loc[i].x,s1.loc[i].y);
+			s1.loc[0].x = s1.loc[0].x-8; // Change the location of the snake
 		}
 		else if (directions1 == 's'){
-			printf("Start locatie s1 : x = %d y = %d\n",s1.loc[i].x,s1.loc[i].y);
-			 alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[i].x,s1.loc[i].y,s1.loc[i].x+6,s1.loc[i].y+6,BLACK,BLACK);// Last location becomes black
-			 //for(i=0; i < s1.length;i++){
-			s1.loc[i].y = s1.loc[i].y+8; // Change the location of the snake
-			alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[i].x,s1.loc[i].y,s1.loc[i].x+6,s1.loc[i].y+6,YELLOW,YELLOW); // Draws snake on new location
-			//}
-			printf("Volgende locatie s1: x = %d y = %d\n",s1.loc[i].x,s1.loc[i].y);
+			s1.loc[0].y = s1.loc[0].y+8; // Change the location of the snake
 		}
 		else if (directions1 == 'd'){
-			printf("Start locatie s1 : x = %d y = %d\n",s1.loc[i].x,s1.loc[i].y);
-			alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[i].x,s1.loc[i].y,s1.loc[i].x+6,s1.loc[i].y+6,BLACK,BLACK);// Last location becomes black
-			//for(i=0; i < s1.length;i++){
-			s1.loc[i].x = s1.loc[i].x+8; // Change the location of the snake
-			alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[i].x,s1.loc[i].y,s1.loc[i].x+6,s1.loc[i].y+6,YELLOW,YELLOW); // draws snake on new location
-			//}
-			printf("Volgende locatie s1 : x = %d y = %d\n",s1.loc[i].x,s1.loc[i].y);
+			s1.loc[0].x = s1.loc[0].x+8; // Change the location of the snake
 		}
+
+		if (s1.length == 0){
+			alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[0].x,s1.loc[0].y,s1.loc[0].x+6,s1.loc[0].y+6,GREEN,GREEN); // Draws snake on new location
+		} else {
+			// print snake new head
+			alt_up_pixel_buffer_dma_draw_box(vgapixel,s1.loc[0].x,s1.loc[0].y,s1.loc[0].x+6,s1.loc[0].y+6,GREEN,GREEN);
+		}
+
 		ALT_SEM_POST(directions1_sem);
 
 	}
 
 	if(s.id == 2){
-		ALT_SEM_PEND(directions2_sem,1);
+		ALT_SEM_PEND(directions2_sem,0);
+		if (s2.length == 0){
+			alt_up_pixel_buffer_dma_draw_box(vgapixel,s2.loc[0].x,s2.loc[0].y,s2.loc[0].x+6,s2.loc[0].y+6,BLACK,BLACK);// Last location becomes black
+		} else {
+			// remove last of old snake
+			alt_up_pixel_buffer_dma_draw_box(vgapixel,s2.loc[s2.length].x,s2.loc[s2.length].y,s2.loc[s2.length].x+6,s2.loc[s2.length].y+6,BLACK,BLACK);
+			AddSnake(s2); // edit snake
+		}
+
 		if (directions2 == 'u'){
-			 printf("Start locatie s2 : x = %d y = %d\n",s2.loc[i].x,s2.loc[i].y);
-			 alt_up_pixel_buffer_dma_draw_box(vgapixel,s2.loc[i].x,s2.loc[i].y,s2.loc[i].x+6,s2.loc[i].y+6,BLACK,BLACK);// Last location becomes black
-			 //for(i=0; i < s2.length;i++){
-			 s2.loc[i].y = s2.loc[i].y-8; // Change the location of the snake
-			 alt_up_pixel_buffer_dma_draw_box(vgapixel,s2.loc[i].x,s2.loc[i].y,s2.loc[i].x+6,s2.loc[i].y+6,GREEN,GREEN); // Draws snake on new location
-			 //}
-			 printf("Volgende locatie s2: x = %d y = %d\n",s2.loc[i].x,s2.loc[i].y);
+			 s2.loc[0].y = s2.loc[0].y-8; // Change the location of the snake
 		}
 		else if (directions2 == 'l'){
-			printf("Start locatie s2 : x = %d y = %d\n",s2.loc[i].x,s2.loc[i].y);
-			alt_up_pixel_buffer_dma_draw_box(vgapixel,s2.loc[i].x,s2.loc[i].y,s2.loc[i].x+6,s2.loc[i].y+6,BLACK,BLACK);// Last location becomes black
-			//for(i=0; i < s2.length;i++){
-			s2.loc[i].x = s2.loc[i].x-8; // Change the location of the snake
-			alt_up_pixel_buffer_dma_draw_box(vgapixel,s2.loc[i].x,s2.loc[i].y,s2.loc[i].x+6,s2.loc[i].y+6,GREEN,GREEN); // Draws snake on new location
-			//}
-			printf("Volgende locatie s2 : x = %d y = %d\n",s2.loc[i].x,s2.loc[i].y);
+			s2.loc[0].x = s2.loc[0].x-8; // Change the location of the snake
 		}
 		else if (directions2 == 'z'){
-			printf("Start locatie s2 : x = %d y = %d\n",s2.loc[i].x,s2.loc[i].y);
-			alt_up_pixel_buffer_dma_draw_box(vgapixel,s2.loc[i].x,s2.loc[i].y,s2.loc[i].x+6,s2.loc[i].y+6,BLACK,BLACK);// Last location becomes black
-			//for(i=0; i < s2.length;i++){
-			s2.loc[i].y = s2.loc[i].y+8; // Change the location of the snake
-			alt_up_pixel_buffer_dma_draw_box(vgapixel,s2.loc[i].x,s2.loc[i].y,s2.loc[i].x+6,s2.loc[i].y+6,GREEN,GREEN); // Draws snake on new location
-			//}
-			printf("Volgende locatie s2 : x = %d y = %d\n",s2.loc[i].x,s2.loc[i].y);
+			s2.loc[0].y = s2.loc[0].y+8; // Change the location of the snake
 		}
 		else if (directions2 == 'r'){
-			printf("Start locatie s2 : x = %d y = %d\n",s2.loc[i].x,s2.loc[i].y);
-			alt_up_pixel_buffer_dma_draw_box(vgapixel,s2.loc[i].x,s2.loc[i].y,s2.loc[i].x+6,s2.loc[i].y+6,BLACK,BLACK);// Last location becomes black
-			//for(i=0; i < s2.length;i++){
-			s2.loc[i].x = s2.loc[i].x+8; // Change the location of the snake
-			alt_up_pixel_buffer_dma_draw_box(vgapixel,s2.loc[i].x,s2.loc[i].y,s2.loc[i].x+6,s2.loc[i].y+6,GREEN,GREEN); // draws snake on new location				//}
-			printf("Volgende locatie s2 : x = %d y = %d\n",s2.loc[i].x,s2.loc[i].y);
+			s2.loc[0].x = s2.loc[0].x+8; // Change the location of the snake
 		}
+
+		if (s2.length == 0){
+			alt_up_pixel_buffer_dma_draw_box(vgapixel,s2.loc[0].x,s2.loc[0].y,s2.loc[0].x+6,s2.loc[0].y+6,YELLOW,YELLOW); // Draws snake on new location
+		} else {
+			// print snake new head
+			alt_up_pixel_buffer_dma_draw_box(vgapixel,s2.loc[0].x,s2.loc[0].y,s2.loc[0].x+6,s2.loc[0].y+6,YELLOW,YELLOW);
+		}
+
 		ALT_SEM_POST(directions2_sem);
 	}
 
@@ -660,6 +629,13 @@ void MoveSnake(void* the_snake){
 /************************************************************************/
 
 void GameOver(void* pdata){
+	char i = 0;
+	if (directions1 == 'K'){
+		i = '2';
+	} else {
+		i = '1';
+	}
+
 	ALT_SEM_PEND(menu_sem, 0);
 	if (menu_id == 1){
 		OSTaskDel(READ_KEYBOARD_PRIORITY);
@@ -697,16 +673,21 @@ void GameOver(void* pdata){
 	alt_up_video_dma_draw_string(vgachar, GameOverString, 35,30, 0);
 
 	ALT_SEM_PEND(menu_sem, 0);
-	menu_id = 3; // Make keyboard responsive
+	if (menu_id == 2){
+	snprintf(GameOverString, sizeof(GameOverString), "WINNER: Player %c", i);
+	alt_up_video_dma_draw_string(vgachar, GameOverString, 33,36, 0);
+
+	snprintf(GameOverString, sizeof(GameOverString), "P2 score: %d", s2.length);
+	alt_up_video_dma_draw_string(vgachar, GameOverString, 34,42, 0);
+	}
 	ALT_SEM_POST(menu_sem);
 
-	// show score
+	snprintf(GameOverString, sizeof(GameOverString), "P1 score: %d", s1.length);
+	alt_up_video_dma_draw_string(vgachar, GameOverString, 34,40, 0);
 
-	if(directions2 == 'K'){
-		printf("snake2 died\n");
-	}else{
-		printf("Snake1 died\n");
-	}
+	ALT_SEM_PEND(menu_sem, 0);
+	menu_id = 3; // Make keyboard responsive
+	ALT_SEM_POST(menu_sem);
 
 	OSTimeDlyHMSM(0,0,2,0);
 
@@ -929,9 +910,6 @@ void StartSinglePlayer(void* pdata){
 			strcpy(Player1PressUpp, "      ");
 			alt_up_video_dma_draw_string(vgachar, Player1PressUpp, 70,26, 1);
 
-
-			directions1 = 0;
-
 			/* Start count down */
 			char CountDown[5];
 			strcpy(CountDown, "3!");
@@ -946,6 +924,8 @@ void StartSinglePlayer(void* pdata){
 			strcpy(CountDown, "GO!");
 			alt_up_video_dma_draw_string(vgachar, CountDown, 70,22, 0);
 			OSTimeDlyHMSM(0,0,0,800);
+
+			directions1 = 0;
 
 			OSTaskCreateExt(MoveSnake,
 					&s1,
@@ -1064,10 +1044,6 @@ void StartMultiPlayer(void* pdata){
 			strcpy(Player1PressUpp, "      ");
 			alt_up_video_dma_draw_string(vgachar, Player1PressUpp, 70,26, 1);
 
-
-			directions1 = 0;
-			directions2 = 0;
-
 			/* Start count down */
 			char CountDown[5];
 			strcpy(CountDown, "3!");
@@ -1082,6 +1058,9 @@ void StartMultiPlayer(void* pdata){
 			strcpy(CountDown, "GO!");
 			alt_up_video_dma_draw_string(vgachar, CountDown, 70,22, 0);
 			OSTimeDlyHMSM(0,0,0,800);
+
+			directions1 = 0;
+			directions2 = 0;
 
 			OSTaskCreateExt(MoveSnake,
 					&s1,
@@ -1120,14 +1099,14 @@ int main(void){
 	int errs;
 	errs = ALT_SEM_CREATE(&directions1_sem,1);
 	errs = ALT_SEM_CREATE(&directions2_sem,1);
-	int err = ALT_SEM_CREATE(&sem, 1);
-	int err2 = ALT_SEM_CREATE(&menu_sem, 1);
-	int err3 = ALT_SEM_CREATE(&Snake_Length, 1);
-	int err4 = ALT_SEM_CREATE(&Snake_Loc, 1);
-	int err5 = ALT_SEM_CREATE(&Apple_Loc, 1);
+	errs = ALT_SEM_CREATE(&sem, 1);
+	errs = ALT_SEM_CREATE(&menu_sem, 1);
+	errs = ALT_SEM_CREATE(&Snake_Length, 1);
+	errs = ALT_SEM_CREATE(&Snake_Loc, 1);
+	errs = ALT_SEM_CREATE(&Apple_Loc, 1);
 
 
-	if (err != 0)
+	if (errs != 0)
 		printf("Semaphore NOT created\n");
 
 	vgapixel = alt_up_pixel_buffer_dma_open_dev("/dev/VGA_Subsystem_VGA_Pixel_DMA");		//open pixel buffer
