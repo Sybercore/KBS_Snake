@@ -91,6 +91,7 @@ char  directions1 = 0;
 char  directions2 = 0;
 char Eaten = 0;
 char menu_id = 0;
+char restart = 0;
 
 /* Prototypes */
 void ReadKeyboard(void* pdata);
@@ -191,7 +192,7 @@ void ReadKeyboard(void* pdata){
 						ALT_SEM_POST(directions2_sem);
 					}
 				}
-    OSTimeDlyHMSM(0, 0, 0, 90);
+    OSTimeDlyHMSM(0, 0, 0, 70);
 	}
 }
 
@@ -481,20 +482,95 @@ void MoveSnake(void* the_snake){
 
 	/* Declare variables */
 	snake s = *((snake*) the_snake);
-	int i;
-
-	printf("%d", directions1);
+	int y,i;
 
 	while(1){
 	// upper left corner X0,Y0,X1,Y1 : 51,9,57,15
 	// upper right corner X0,Y0,X1,Y1: 267,9,273,15
 	// lower left corner X0,Y0,X1,Y1 : 51,225,57,231
 	// lower right corner X0,Y0,X1,Y1: 267,225,273,231
-
 	 //alt_up_pixel_buffer_dma_draw_box(vgapixel,51,9,57,15,YELLOW,YELLOW); // upper left corner
 	 //alt_up_pixel_buffer_dma_draw_box(vgapixel,51+216,9,57+216,15,YELLOW,YELLOW);// upper right corner
 	 //alt_up_pixel_buffer_dma_draw_box(vgapixel,51,9+216,57,15+216,YELLOW,YELLOW); // lower right corner
 	 //alt_up_pixel_buffer_dma_draw_box(vgapixel,51+216,9+216,57+216,15+216,YELLOW,YELLOW); // lower left corner
+
+
+ // player 1 check if touched a snake
+ if(s.id == 1){
+	for(y = 0; y <= s1.length;y++){
+		ALT_SEM_PEND(directions1_sem, 0);
+
+
+		if(s1.loc[0].x == s1.loc[y+1].x && s1.loc[0].y == s1.loc[y+1].y){
+
+			directions1 = 'K';
+
+		}
+		ALT_SEM_POST(directions1_sem);
+
+		ALT_SEM_PEND(menu_sem,0);
+	if(menu_id == 2){
+			ALT_SEM_PEND(directions1_sem,0);
+
+			if(s1.length == 0){
+				if(s1.loc[0].x == s2.loc[0].x && s1.loc[0].y == s2.loc[0].y){
+					directions1 = 'K';
+				}
+			}
+			else {
+				for(i = 0 ; i <= s2.length; i++){
+				if(s1.loc[0].x == s2.loc[i+1].x && s1.loc[0].y == s2.loc[i+1].y){
+					directions1 ='K';
+				}
+				}
+
+			}
+			ALT_SEM_POST(directions1_sem);
+		}
+		ALT_SEM_POST(menu_sem);
+	}
+
+ }
+
+
+ // player 2 check if touched a snake
+ if(s.id == 2){
+	for(y = 0; y <= s2.length;y++){
+		ALT_SEM_PEND(directions2_sem, 0);
+
+
+		if(s2.loc[0].x == s2.loc[y+1].x && s2.loc[0].y == s2.loc[y+1].y){
+
+			directions2 = 'K';
+
+		}
+		ALT_SEM_POST(directions2_sem);
+
+		ALT_SEM_PEND(menu_sem,0);
+	if(menu_id == 2){
+			ALT_SEM_PEND(directions2_sem,0);
+
+			if(s2.length == 0){
+				if(s2.loc[0].x == s1.loc[0].x && s2.loc[0].y == s1.loc[0].y){
+					directions2 = 'K';
+				}
+			}
+			else {
+				for (i = 0 ; i <= s1.length; i++){
+					if(s2.loc[0].x == s1.loc[i+1].x && s2.loc[0].y == s1.loc[i+1].y){
+					printf("TEST MP KILL/n");
+					directions2 ='K';
+				}
+				}
+
+			}
+			ALT_SEM_POST(directions2_sem);
+		}
+		ALT_SEM_POST(menu_sem);
+	}
+
+ }
+
 
 
 	if(s1.loc[0].x == a.x && s1.loc[0].y == a.y){
@@ -610,7 +686,7 @@ void MoveSnake(void* the_snake){
 		}
 		ALT_SEM_POST(directions1_sem);
 		ALT_SEM_POST(directions2_sem);
-		OSTimeDlyHMSM(0,0,0,120);
+		OSTimeDlyHMSM(0,0,0,110);
 		}
 
 	}
@@ -630,6 +706,14 @@ void MoveSnake(void* the_snake){
 
 void GameOver(void* pdata){
 	char i = 0;
+	int scorep1 = 0,scorep2 = 0;
+	if(menu_id == 1){
+		scorep1 = s1.length;
+	}
+	if(menu_id == 2){
+		scorep1 = s1.length;
+		scorep2 = s2.length;
+	}
 	if (directions1 == 'K'){
 		i = '2';
 	} else {
@@ -641,6 +725,7 @@ void GameOver(void* pdata){
 		OSTaskDel(READ_KEYBOARD_PRIORITY);
 		OSTaskDel(MOVE_SNAKE_PRIORITY);
 		OSTaskDel(BORDER_CHECK_PRIORITY);
+
 
 		/* Reset variables */
 		directions1 = 0;
@@ -677,12 +762,12 @@ void GameOver(void* pdata){
 	snprintf(GameOverString, sizeof(GameOverString), "WINNER: Player %c", i);
 	alt_up_video_dma_draw_string(vgachar, GameOverString, 33,36, 0);
 
-	snprintf(GameOverString, sizeof(GameOverString), "P2 score: %d", s2.length);
+	snprintf(GameOverString, sizeof(GameOverString), "P2 score: %d", scorep2);
 	alt_up_video_dma_draw_string(vgachar, GameOverString, 34,42, 0);
 	}
 	ALT_SEM_POST(menu_sem);
 
-	snprintf(GameOverString, sizeof(GameOverString), "P1 score: %d", s1.length);
+	snprintf(GameOverString, sizeof(GameOverString), "P1 score: %d", scorep1);
 	alt_up_video_dma_draw_string(vgachar, GameOverString, 34,40, 0);
 
 	ALT_SEM_PEND(menu_sem, 0);
@@ -721,6 +806,7 @@ void GameOver(void* pdata){
 
 void GenerateApple(void* pdata){
 	ALT_SEM_PEND(Apple_Loc, 0);
+	int i;
 	/* Randomizer */
 	srand(time());
 	int yLocation = rand() % 28;
@@ -730,6 +816,35 @@ void GenerateApple(void* pdata){
 	/* Set's the location in the struct and draw's the apple */
 	a.x =  51+(xLocation*8);
 	a.y =  9+(yLocation*8);
+
+
+	for(i = 0; i <= s1.length; i++){
+	  while(a.x == s1.loc[i].x && a.y == s1.loc[i].y){
+
+			srand(time());
+			int yLocation = rand() % 28;
+			srand(time());
+			int xLocation = rand()% 28;
+
+			a.x =  51+(xLocation*8);
+			a.y =  9+(yLocation*8);
+	  }
+	}
+	/*if(menu_id == 2){
+		for(i = 0; i <= s2.length; i++){
+		  while(a.x == s2.loc[i].x && a.y == s2.loc[i].y ){
+
+				srand(time());
+				int yLocation = rand() % 28;
+				srand(time());
+				int xLocation = rand()% 28;
+
+				a.x =  51+(xLocation*8);
+				a.y =  9+(yLocation*8);
+		  }
+		}
+	}
+	*/
 	alt_up_pixel_buffer_dma_draw_box(vgapixel,a.x,a.y,a.x + 6,a.y+6,RED,RED);
 
 	printf("Appel created\n");
@@ -867,7 +982,7 @@ void StartSinglePlayer(void* pdata){
 			&s1,
 			(void *) &BorderCheck_stk[0][TASK_STACKSIZE - 1],
 			BORDER_CHECK_PRIORITY, BORDER_CHECK_PRIORITY,
-			BorderCheck_stk,
+			BorderCheck_stk[0],
 			TASK_STACKSIZE,
 			NULL,
 			0);
@@ -899,6 +1014,7 @@ void StartSinglePlayer(void* pdata){
 		ALT_SEM_PEND(directions1_sem, 0);
 		/* If player is ready */
 		if (directions1 == 'w'){
+
 			alt_up_video_dma_draw_string(vgachar, Player1PressUpp, 70,26, 1);
 			OSTimeDlyHMSM(0, 0, 1, 0);
 
@@ -909,6 +1025,7 @@ void StartSinglePlayer(void* pdata){
 			alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,22, 0);
 			strcpy(Player1PressUpp, "      ");
 			alt_up_video_dma_draw_string(vgachar, Player1PressUpp, 70,26, 1);
+
 
 			/* Start count down */
 			char CountDown[5];
@@ -931,7 +1048,7 @@ void StartSinglePlayer(void* pdata){
 					&s1,
 					(void *) &MoveSnake_stk[0][TASK_STACKSIZE - 1],
 					MOVE_SNAKE_PRIORITY, MOVE_SNAKE_PRIORITY,
-					MoveSnake_stk,
+					MoveSnake_stk[0],
 					TASK_STACKSIZE,
 					NULL,
 					0);
