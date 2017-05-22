@@ -496,41 +496,45 @@ void MoveSnake(void* the_snake){
 
 
  // player 1 check if touched a snake
- if(s.id == 1){
-	for(y = 0; y <= s1.length;y++){
-		ALT_SEM_PEND(directions1_sem, 0);
+		 if(s.id == 1){
+			for(y = 0; y <= s1.length;y++){
+				ALT_SEM_PEND(directions1_sem, 0);
 
 
-		if(s1.loc[0].x == s1.loc[y+1].x && s1.loc[0].y == s1.loc[y+1].y){
+				if(s1.loc[0].x == s1.loc[y+1].x && s1.loc[0].y == s1.loc[y+1].y){
 
-			directions1 = 'K';
-
-		}
-		ALT_SEM_POST(directions1_sem);
-
-		ALT_SEM_PEND(menu_sem,0);
-	if(menu_id == 2){
-			ALT_SEM_PEND(directions1_sem,0);
-
-			if(s1.length == 0){
-				if(s1.loc[0].x == s2.loc[0].x && s1.loc[0].y == s2.loc[0].y){
 					directions1 = 'K';
-				}
-			}
-			else {
-				for(i = 0 ; i <= s2.length; i++){
-				if(s1.loc[0].x == s2.loc[i+1].x && s1.loc[0].y == s2.loc[i+1].y){
-					directions1 ='K';
-				}
-				}
 
-			}
-			ALT_SEM_POST(directions1_sem);
-		}
-		ALT_SEM_POST(menu_sem);
-	}
+				}
+				ALT_SEM_POST(directions1_sem);
 
- }
+				ALT_SEM_PEND(menu_sem,0);
+
+
+			if(menu_id == 2){
+					ALT_SEM_PEND(directions1_sem,0);
+
+
+					if(s1.loc[0].x == s2.loc[0].x && s1.loc[0].y == s2.loc[0].y){
+						directions1 = 'K';
+					}
+					else{
+
+						for(i = 0; i < s2.length; i++){
+							if(s1.loc[0].x == s2.loc[i+1].x && s1.loc[0].y == s2.loc[i+1].y){
+								directions1 = 'K';
+							}
+						}
+
+
+
+					}
+					ALT_SEM_POST(directions1_sem);
+				}
+				ALT_SEM_POST(menu_sem);
+			}
+
+		 }
 
 
  // player 2 check if touched a snake
@@ -547,21 +551,24 @@ void MoveSnake(void* the_snake){
 		ALT_SEM_POST(directions2_sem);
 
 		ALT_SEM_PEND(menu_sem,0);
+
+
 	if(menu_id == 2){
 			ALT_SEM_PEND(directions2_sem,0);
 
-			if(s2.length == 0){
-				if(s2.loc[0].x == s1.loc[0].x && s2.loc[0].y == s1.loc[0].y){
-					directions2 = 'K';
-				}
+
+			if(s2.loc[0].x == s1.loc[0].x && s2.loc[0].y == s1.loc[0].y){
+				directions2 = 'K';
 			}
-			else {
-				for (i = 0 ; i <= s1.length; i++){
+			else{
+
+				for(i = 0; i < s1.length; i++){
 					if(s2.loc[0].x == s1.loc[i+1].x && s2.loc[0].y == s1.loc[i+1].y){
-					printf("TEST MP KILL/n");
-					directions2 ='K';
+						directions2 = 'K';
+					}
 				}
-				}
+
+
 
 			}
 			ALT_SEM_POST(directions2_sem);
@@ -1003,8 +1010,10 @@ void StartSinglePlayer(void* pdata){
 	char AskPressUpp[20];
 	strcpy(AskPressUpp, "Ready?");
 	alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,20, 0);
-	strcpy(AskPressUpp, "Press 'up'!");
+	strcpy(AskPressUpp, "Press");
 	alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,22, 0);
+	strcpy(AskPressUpp,"'Down!'");
+	alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,24,0);
 
 	/* If player is ready string */
 	char Player1PressUpp[20];
@@ -1013,7 +1022,7 @@ void StartSinglePlayer(void* pdata){
 	while(1){
 		ALT_SEM_PEND(directions1_sem, 0);
 		/* If player is ready */
-		if (directions1 == 'w'){
+		if (directions1 == 's'){
 
 			alt_up_video_dma_draw_string(vgachar, Player1PressUpp, 70,26, 1);
 			OSTimeDlyHMSM(0, 0, 1, 0);
@@ -1021,8 +1030,8 @@ void StartSinglePlayer(void* pdata){
 			/* Clear words on screen */
 			strcpy(AskPressUpp, "      ");
 			alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,20, 0);
-			strcpy(AskPressUpp, "           ");
 			alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,22, 0);
+			alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,24,0);
 			strcpy(Player1PressUpp, "      ");
 			alt_up_video_dma_draw_string(vgachar, Player1PressUpp, 70,26, 1);
 
@@ -1139,8 +1148,10 @@ void StartMultiPlayer(void* pdata){
 	char AskPressUpp[20];
 	strcpy(AskPressUpp, "Ready?");
 	alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,20, 0);
-	strcpy(AskPressUpp, "Press 'up'");
+	strcpy(AskPressUpp, "Press");
 	alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,22, 0);
+	strcpy(AskPressUpp,"'Down!'");
+	alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,24,0);
 
 	/* If player is ready string */
 	char Player1PressUpp[20];
@@ -1149,16 +1160,16 @@ void StartMultiPlayer(void* pdata){
 	while(1){
 		ALT_SEM_PEND(directions1_sem, 0);
 		/* If player is ready */
-		if (directions1 == 'w' && directions2 == 'u'){
+		if (directions1 == 's' && directions2 == 'z'){
 			alt_up_video_dma_draw_string(vgachar, Player1PressUpp, 70,26, 1);
 			OSTimeDlyHMSM(0, 0, 1, 0);
 
 			/* Clear words on screen */
-			strcpy(AskPressUpp, "      ");
+			strcpy(AskPressUpp, "       ");
 			alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,20, 0);
-			strcpy(AskPressUpp, "           ");
 			alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,22, 0);
-			strcpy(Player1PressUpp, "      ");
+			alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,24,0);
+			strcpy(Player1PressUpp, "       ");
 			alt_up_video_dma_draw_string(vgachar, Player1PressUpp, 70,26, 1);
 
 			/* Start count down */
