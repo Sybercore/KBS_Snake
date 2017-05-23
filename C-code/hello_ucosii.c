@@ -19,7 +19,6 @@ OS_STK BorderCheck_stk[2][TASK_STACKSIZE];
 OS_STK GameOver_stk[TASK_STACKSIZE];
 OS_STK MainMenu_stk[TASK_STACKSIZE];
 OS_STK GenerateApple_stk[TASK_STACKSIZE];
-OS_STK ReadKeyboardMenu_stk[TASK_STACKSIZE];
 OS_STK StartSinglePlayer_stk[TASK_STACKSIZE];
 OS_STK StartMultiPlayer_stk[TASK_STACKSIZE];
 
@@ -31,7 +30,6 @@ OS_STK StartMultiPlayer_stk[TASK_STACKSIZE];
 #define GAME_OVER_PRIORITY		4
 #define MAIN_MENU_PRIORITY		12
 #define GENERATE_APPLE_PRIORITY  10
-#define READ_KEYBOARD_MENU_PRIORITY  11
 #define START_SINGLE_PLAYER_PRIORITY 1
 #define START_MULTI_PLAYER_PRIORITY 2
 
@@ -89,9 +87,7 @@ snake s2;
 apple a;
 char  directions1 = 0;
 char  directions2 = 0;
-char Eaten = 0;
 char menu_id = 0;
-char restart = 0;
 
 /* Prototypes */
 void ReadKeyboard(void* pdata);
@@ -103,7 +99,6 @@ void MainMenu(void* pdata);
 void GenerateApple(void* pdata);
 snake CreateSnake(int id);
 void AddSnake(snake head);
-void ReadKeyboardMenu(void* pdata);
 void StartSinglePlayer(void* pdata);
 void StartMultiPlayer(void* pdata);
 
@@ -116,13 +111,15 @@ void StartMultiPlayer(void* pdata);
 	Returns:		Nothing
 	Description:	Reads the keyboard input and sets the corresponding
 					semaphore to the right direction.
+					Reads the keyboard input, makes it possible to start
+					a game and to go back to the main menu.
 */
 /************************************************************************/
 
 void ReadKeyboard(void* pdata){
 	/* Declare variables */
 	int PS2_data, RVALID;
-	int byte = 0;
+	int byte = 0, count = 0, loc = 1;
 
 	/* Start checking for input */
 	while (1){
@@ -135,8 +132,69 @@ void ReadKeyboard(void* pdata){
 			/* Decoding byte */
 			byte = PS2_data & 0xFF;
 			//printf ("key: %d", byte);
+			ALT_SEM_PEND(menu_sem, 0);
+			if (menu_id == 0){
+				/* Main screen keys */
+				switch (byte){
+					// Next
+					case 0x29:
+						// Space
+						if (count >= 2){
+							if (loc == 0){
+								// Bottom word
+								alt_up_pixel_buffer_dma_draw_box(vgapixel,130,139,135,144,BLACK,BLACK);
+								alt_up_pixel_buffer_dma_draw_box(vgapixel,130,119,135,124,MainGreen,MainGreen);
+								loc = loc + 1;
+							} else if (loc == 1){
+								// Top word
+								alt_up_pixel_buffer_dma_draw_box(vgapixel,130,119,135,124,BLACK,BLACK);
+								alt_up_pixel_buffer_dma_draw_box(vgapixel,130,139,135,144,MainGreen,MainGreen);
+								loc = loc - 1;
+							}
+							count = 0;
+						}
+						break;
+					// Go
+					case 0x5A:
+						// Enter
+						if (count >= 2){
+							if (loc == 1){
+								// Start single player
+								menu_id = 1; // Create Game
 
+								OSTaskCreateExt(StartSinglePlayer,
+										NULL,
+										(void *) &StartSinglePlayer_stk[TASK_STACKSIZE - 1],
+										START_SINGLE_PLAYER_PRIORITY, START_SINGLE_PLAYER_PRIORITY,
+											StartSinglePlayer_stk,
+											TASK_STACKSIZE,
+											NULL,
+											0);
+
+							} else if (loc == 0){
+								// Start multiplier
+
+								menu_id = 2; // Create Game
+
+								OSTaskCreateExt(StartMultiPlayer,
+										NULL,
+										(void *) &StartMultiPlayer_stk[TASK_STACKSIZE - 1],
+										START_MULTI_PLAYER_PRIORITY, START_MULTI_PLAYER_PRIORITY,
+										StartMultiPlayer_stk,
+										TASK_STACKSIZE,
+										NULL,
+										0);
+
+							}
+							count = 0;
+						}
+				}
+			}
+			ALT_SEM_POST(menu_sem);
+			ALT_SEM_PEND(menu_sem, 0);
+			if (menu_id == 1 || menu_id == 2){
 				/* Movement keys snake 1 */
+
 				switch (byte){
 					// Up
 					case 0x1D:
@@ -192,127 +250,36 @@ void ReadKeyboard(void* pdata){
 						ALT_SEM_POST(directions2_sem);
 					}
 				}
+			ALT_SEM_POST(menu_sem);
+			ALT_SEM_PEND(menu_sem, 0);
+				if (menu_id == 3){
+					switch(byte){
+						case 0x29:
+							// Space
+							if (count >= 2){
+
+								menu_id = 0; // Go back to the main menu
+								count = 0;
+								loc = 0;
+
+								OSTaskCreateExt(MainMenu,
+										NULL,
+										(void *)&MainMenu_stk[TASK_STACKSIZE-1],
+										MAIN_MENU_PRIORITY, MAIN_MENU_PRIORITY,
+										MainMenu_stk,
+										TASK_STACKSIZE,
+										NULL,
+										0);
+							}
+					}
+				}
+			ALT_SEM_POST(menu_sem);
+			count++;
+			}
     OSTimeDlyHMSM(0, 0, 0, 70);
 	}
 }
 
-
-/************************************************************************/
-/*
-	Prototype:		void ReadKeyboardMenu(void* pdata)
-	Include:		N/A
-	Parameters:		N/A
-	Returns:		Nothing
-	Description:	Reads the keyboard input, makes it possible to start
-					a game and to go back to the main menu.
-*/
-/************************************************************************/
-
-void ReadKeyboardMenu(void* pdata){
-	/* Declare variables */
-	int PS2_data, RVALID;
-	int byte = 0, loc = 1, count = 0;
-
-	/* Start checking for input */
-	while (1){
-		/* Initializing keyboard */
-		PS2_data = *(PS2_ptr);
-		RVALID = PS2_data & 0x8000;
-
-		/* Check if input is available */
-		if (RVALID){
-			/* Decoding byte */
-			byte = PS2_data & 0xFF;
-
-			if (menu_id == 0){
-				/* Main screen keys */
-				switch (byte){
-					// Next
-					case 0x29:
-						// Space
-						if (count >= 2){
-							if (loc == 0){
-								// Bottom word
-								alt_up_pixel_buffer_dma_draw_box(vgapixel,130,139,135,144,BLACK,BLACK);
-								alt_up_pixel_buffer_dma_draw_box(vgapixel,130,119,135,124,MainGreen,MainGreen);
-								loc = loc + 1;
-							} else if (loc == 1){
-								// Top word
-								alt_up_pixel_buffer_dma_draw_box(vgapixel,130,119,135,124,BLACK,BLACK);
-								alt_up_pixel_buffer_dma_draw_box(vgapixel,130,139,135,144,MainGreen,MainGreen);
-								loc = loc - 1;
-							}
-							count = 0;
-						}
-						break;
-					// Go
-					case 0x5A:
-						// Enter
-						if (count >= 2){
-							if (loc == 1){
-								// Start single player
-								ALT_SEM_PEND(menu_sem, 0);
-								menu_id = 1; // Create Game
-								ALT_SEM_POST(menu_sem);
-
-								OSTaskCreateExt(StartSinglePlayer,
-										NULL,
-										(void *) &StartSinglePlayer_stk[TASK_STACKSIZE - 1],
-										START_SINGLE_PLAYER_PRIORITY, START_SINGLE_PLAYER_PRIORITY,
-										StartSinglePlayer_stk,
-										TASK_STACKSIZE,
-										NULL,
-										0);
-
-								OSTaskDel(OS_PRIO_SELF); // not longer needed
-
-							} else if (loc == 0){
-								// Start multiplier
-								ALT_SEM_PEND(menu_sem, 0);
-								menu_id = 2; // Create Game
-								ALT_SEM_POST(menu_sem);
-
-								OSTaskCreateExt(StartMultiPlayer,
-										NULL,
-										(void *) &StartMultiPlayer_stk[TASK_STACKSIZE - 1],
-										START_MULTI_PLAYER_PRIORITY, START_MULTI_PLAYER_PRIORITY,
-										StartMultiPlayer_stk,
-										TASK_STACKSIZE,
-										NULL,
-										0);
-
-								OSTaskDel(OS_PRIO_SELF); // not longer needed
-							}
-							count = 0;
-						}
-					}
-				} else if (menu_id == 3){
-					switch(byte){
-						case 0x29:
-						// Space
-						if (count >= 2){
-							  ALT_SEM_PEND(menu_sem, 0);
-							  menu_id = 0; // Go back to the main menu
-							  ALT_SEM_POST(menu_sem);
-							  count = 0;
-							  loc = 0;
-
-							  OSTaskCreateExt(MainMenu,
-							        NULL,
-							        (void *)&MainMenu_stk[TASK_STACKSIZE-1],
-							        MAIN_MENU_PRIORITY, MAIN_MENU_PRIORITY,
-							        MainMenu_stk,
-							        TASK_STACKSIZE,
-							        NULL,
-							        0);
-						}
-					}
-				}
-				count++;
-			}
-		OSTimeDlyHMSM(0, 0, 0, 150);
-	}
-}
 
 /************************************************************************/
 /*
@@ -374,26 +341,36 @@ void BorderCheck(void* the_snake){
 				ALT_SEM_PEND(directions1_sem, 0);
 				directions1 = 'K';
 				ALT_SEM_POST(directions1_sem);
+				ALT_SEM_POST(Snake_Loc);
+				OSTaskDel(OS_PRIO_SELF);
 			} else if (s1.loc[0].y < 9 || s1.loc[0].y > 225){
 				/* Snake is outside the border */
 				ALT_SEM_PEND(directions1_sem, 0);
 				directions1 = 'K';
 				ALT_SEM_POST(directions1_sem);
+				ALT_SEM_POST(Snake_Loc);
+				OSTaskDel(OS_PRIO_SELF);
 			}
 			ALT_SEM_POST(Snake_Loc);
 		}
 		if (s.id == 2){
+			ALT_SEM_PEND(Snake_Loc, 0);
 			if (s2.loc[0].x < 51 || s2.loc[0].x > 267){
 				/* Snake is outside the border */
 				ALT_SEM_PEND(directions2_sem, 0);
 				directions2 = 'K';
 				ALT_SEM_POST(directions2_sem);
+				ALT_SEM_POST(Snake_Loc);
+				OSTaskDel(OS_PRIO_SELF);
 			} else if (s2.loc[0].y < 9 || s2.loc[0].y > 225){
 				/* Snake is outside the border */
 				ALT_SEM_PEND(directions2_sem, 0);
 				directions2 = 'K';
 				ALT_SEM_POST(directions2_sem);
+				ALT_SEM_POST(Snake_Loc);
+				OSTaskDel(OS_PRIO_SELF);
 			}
+			ALT_SEM_POST(Snake_Loc);
 		}
 		OSTimeDlyHMSM(0,0,0,80);
 	}
@@ -686,6 +663,9 @@ void MoveSnake(void* the_snake){
 		ALT_SEM_PEND(directions1_sem, 0);
 		ALT_SEM_PEND(directions2_sem, 0);
 		if (directions1 == 'K' || directions2 == 'K'){
+			alt_up_pixel_buffer_dma_clear_screen(vgapixel, BLACK);
+			alt_up_video_dma_screen_fill(vgachar, BLACK, 0);
+			alt_up_video_dma_screen_fill(vgachar, BLACK, 1);
 		  OSTaskCreateExt(GameOver,
 				NULL,
 				(void *) &GameOver_stk[TASK_STACKSIZE - 1],
@@ -694,6 +674,10 @@ void MoveSnake(void* the_snake){
 				TASK_STACKSIZE,
 				NULL,
 				0);
+
+		  	  ALT_SEM_POST(directions1_sem);
+		  	  ALT_SEM_POST(directions2_sem);
+		  	  OSTaskDel(OS_PRIO_SELF);
 		}
 		ALT_SEM_POST(directions1_sem);
 		ALT_SEM_POST(directions2_sem);
@@ -741,22 +725,11 @@ void GameOver(void* pdata){
 
 	ALT_SEM_PEND(menu_sem, 0);
 	if (menu_id == 1){
-		OSTaskDel(READ_KEYBOARD_PRIORITY);
-		OSTaskDel(MOVE_SNAKE_PRIORITY);
-		OSTaskDel(BORDER_CHECK_PRIORITY);
-
-
 		/* Reset variables */
 		directions1 = 0;
 		s1 = CreateSnake(1);
 
 	} else if (menu_id == 2){
-		OSTaskDel(READ_KEYBOARD_PRIORITY);
-		OSTaskDel(MOVE_SNAKE_PRIORITY);
-		OSTaskDel(MOVE_SNAKE_PRIORITY+1);
-		OSTaskDel(BORDER_CHECK_PRIORITY);
-		OSTaskDel(BORDER_CHECK_PRIORITY+1);
-
 		/* Reset variables */
 		directions1 = 0;
 		s1 = CreateSnake(1);
@@ -799,16 +772,6 @@ void GameOver(void* pdata){
 	strcpy(GameOverString, "Press space to continue");
 	alt_up_video_dma_draw_string(vgachar, GameOverString, 28,32, 0);
 
-	OSTaskCreateExt(ReadKeyboardMenu,
-			NULL,
-	        (void *)&ReadKeyboardMenu_stk[TASK_STACKSIZE-1],
-	        READ_KEYBOARD_MENU_PRIORITY,
-	        READ_KEYBOARD_MENU_PRIORITY,
-	        ReadKeyboardMenu_stk,
-	        TASK_STACKSIZE,
-	        NULL,
-	        0);
-
 	OSTaskDel(OS_PRIO_SELF);
 }
 
@@ -825,7 +788,6 @@ void GameOver(void* pdata){
 
 void GenerateApple(void* pdata){
 	ALT_SEM_PEND(Apple_Loc, 0);
-	int i;
 	/* Randomizer */
 	srand(time());
 	int yLocation = rand() % 28;
@@ -961,15 +923,6 @@ void StartSinglePlayer(void* pdata){
 			NULL,
 			0);
 
-	OSTaskCreateExt(ReadKeyboard,
-			NULL,
-			(void *)&ReadKeyboard_stk[TASK_STACKSIZE-1],
-			READ_KEYBOARD_PRIORITY, READ_KEYBOARD_PRIORITY,
-			ReadKeyboard_stk,
-			TASK_STACKSIZE,
-			NULL,
-			0);
-
 	OSTaskCreateExt(BorderCheck,
 			&s1,
 			(void *) &BorderCheck_stk[0][TASK_STACKSIZE - 1],
@@ -987,9 +940,6 @@ void StartSinglePlayer(void* pdata){
 			TASK_STACKSIZE,
 			NULL,
 			0);
-
-		 // TO DO
-		 // Grow task
 
 	/* Ask player to press the 'down' button */
 	char AskPressDown[20];
@@ -1090,15 +1040,6 @@ void StartMultiPlayer(void* pdata){
 			NULL,
 			0);
 
-	OSTaskCreateExt(ReadKeyboard,
-			NULL,
-			(void *)&ReadKeyboard_stk[TASK_STACKSIZE-1],
-			READ_KEYBOARD_PRIORITY, READ_KEYBOARD_PRIORITY,
-			ReadKeyboard_stk,
-			TASK_STACKSIZE,
-			NULL,
-			0);
-
 	OSTaskCreateExt(BorderCheck,
 			&s1,
 			(void *) &BorderCheck_stk[0][TASK_STACKSIZE - 1],
@@ -1125,9 +1066,6 @@ void StartMultiPlayer(void* pdata){
 			TASK_STACKSIZE,
 			NULL,
 			0);
-
-		 // TO DO
-		 // Grow task
 
 	/* Ask player to press the 'up' button */
 	char AskPressDown[20];
@@ -1258,26 +1196,24 @@ int main(void){
 	alt_up_character_lcd_string(lcd_dev, text_top_row);
 	alt_up_character_lcd_cursor_off(lcd_dev); // turn off the LCD cursor
 
-	OSTaskCreateExt(ReadKeyboardMenu,
-		        NULL,
-		        (void *)&ReadKeyboardMenu_stk[TASK_STACKSIZE-1],
-		        READ_KEYBOARD_MENU_PRIORITY,
-		        READ_KEYBOARD_MENU_PRIORITY,
-		        ReadKeyboardMenu_stk,
-		        TASK_STACKSIZE,
-		        NULL,
-		        0);
+	OSTaskCreateExt(ReadKeyboard,
+			NULL,
+			(void *)&ReadKeyboard_stk[TASK_STACKSIZE-1],
+			READ_KEYBOARD_PRIORITY, READ_KEYBOARD_PRIORITY,
+			ReadKeyboard_stk,
+			TASK_STACKSIZE,
+			NULL,
+			0);
 
-
-		  OSTaskCreateExt(MainMenu,
-		        NULL,
-		        (void *)&MainMenu_stk[TASK_STACKSIZE-1],
-		        MAIN_MENU_PRIORITY,
-		        MAIN_MENU_PRIORITY,
-		        MainMenu_stk,
-		        TASK_STACKSIZE,
-		        NULL,
-		        0);
+	OSTaskCreateExt(MainMenu,
+			NULL,
+			(void *)&MainMenu_stk[TASK_STACKSIZE-1],
+			MAIN_MENU_PRIORITY,
+			MAIN_MENU_PRIORITY,
+			MainMenu_stk,
+			TASK_STACKSIZE,
+			NULL,
+			0);
 
 	printf("end of main \n");
 
