@@ -295,7 +295,7 @@ void ReadKeyboardMenu(void* pdata){
 							  menu_id = 0; // Go back to the main menu
 							  ALT_SEM_POST(menu_sem);
 							  count = 0;
-							  loc = 1;
+							  loc = 0;
 
 							  OSTaskCreateExt(MainMenu,
 							        NULL,
@@ -485,6 +485,8 @@ void MoveSnake(void* the_snake){
 	int y,i;
 
 	while(1){
+
+	alt_up_pixel_buffer_dma_draw_box(vgapixel,a.x,a.y,a.x + 6,a.y+6,RED,RED);
 	// upper left corner X0,Y0,X1,Y1 : 51,9,57,15
 	// upper right corner X0,Y0,X1,Y1: 267,9,273,15
 	// lower left corner X0,Y0,X1,Y1 : 51,225,57,231
@@ -583,6 +585,7 @@ void MoveSnake(void* the_snake){
 	if(s1.loc[0].x == a.x && s1.loc[0].y == a.y){
 		s1.length = s1.length + 2;
 		printf("Apple Eaten snake1 = %d\n", s1.length);
+		alt_up_pixel_buffer_dma_draw_box(vgapixel,a.x,a.y,a.x + 6,a.y+6,GREEN,GREEN);
 		OSTaskCreateExt(GenerateApple,
 				NULL,
 				(void *)&GenerateApple_stk[TASK_STACKSIZE-1],
@@ -596,6 +599,7 @@ void MoveSnake(void* the_snake){
 	if(s2.loc[0].x == a.x && s2.loc[0].y == a.y){
 		s2.length++;
 		printf("Apple Eaten snake2 = %d\n", s2.length);
+		alt_up_pixel_buffer_dma_draw_box(vgapixel,a.x,a.y,a.x + 6,a.y+6,YELLOW,YELLOW);
 		OSTaskCreateExt(GenerateApple,
 				NULL,
 				(void *)&GenerateApple_stk[TASK_STACKSIZE-1],
@@ -721,6 +725,14 @@ void GameOver(void* pdata){
 		scorep1 = s1.length;
 		scorep2 = s2.length;
 	}
+	/*
+	if(directions1 == 'K' && directions2 == 'K'){
+		if(s1.length > s2.length){
+			i = '1';
+		}else if (s2.length > s1.length)
+	}
+	*/
+
 	if (directions1 == 'K'){
 		i = '2';
 	} else {
@@ -825,33 +837,6 @@ void GenerateApple(void* pdata){
 	a.y =  9+(yLocation*8);
 
 
-	for(i = 0; i <= s1.length; i++){
-	  while(a.x == s1.loc[i].x && a.y == s1.loc[i].y){
-
-			srand(time());
-			int yLocation = rand() % 28;
-			srand(time());
-			int xLocation = rand()% 28;
-
-			a.x =  51+(xLocation*8);
-			a.y =  9+(yLocation*8);
-	  }
-	}
-	/*if(menu_id == 2){
-		for(i = 0; i <= s2.length; i++){
-		  while(a.x == s2.loc[i].x && a.y == s2.loc[i].y ){
-
-				srand(time());
-				int yLocation = rand() % 28;
-				srand(time());
-				int xLocation = rand()% 28;
-
-				a.x =  51+(xLocation*8);
-				a.y =  9+(yLocation*8);
-		  }
-		}
-	}
-	*/
 	alt_up_pixel_buffer_dma_draw_box(vgapixel,a.x,a.y,a.x + 6,a.y+6,RED,RED);
 
 	printf("Appel created\n");
@@ -1006,34 +991,34 @@ void StartSinglePlayer(void* pdata){
 		 // TO DO
 		 // Grow task
 
-	/* Ask player to press the 'up' button */
-	char AskPressUpp[20];
-	strcpy(AskPressUpp, "Ready?");
-	alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,20, 0);
-	strcpy(AskPressUpp, "Press");
-	alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,22, 0);
-	strcpy(AskPressUpp,"'Down!'");
-	alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,24,0);
+	/* Ask player to press the 'down' button */
+	char AskPressDown[20];
+	strcpy(AskPressDown, "Ready?");
+	alt_up_video_dma_draw_string(vgachar, AskPressDown, 70,20, 0);
+	strcpy(AskPressDown, "Press");
+	alt_up_video_dma_draw_string(vgachar, AskPressDown, 70,22, 0);
+	strcpy(AskPressDown,"'Down!'");
+	alt_up_video_dma_draw_string(vgachar, AskPressDown, 70,24,0);
 
 	/* If player is ready string */
-	char Player1PressUpp[20];
-	strcpy(Player1PressUpp, "Ready!");
+	char Player1PressDown[20];
+	strcpy(Player1PressDown, "Ready!");
 
 	while(1){
 		ALT_SEM_PEND(directions1_sem, 0);
 		/* If player is ready */
 		if (directions1 == 's'){
 
-			alt_up_video_dma_draw_string(vgachar, Player1PressUpp, 70,26, 1);
+			alt_up_video_dma_draw_string(vgachar, Player1PressDown, 70,28, 1);
 			OSTimeDlyHMSM(0, 0, 1, 0);
 
 			/* Clear words on screen */
-			strcpy(AskPressUpp, "      ");
-			alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,20, 0);
-			alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,22, 0);
-			alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,24,0);
-			strcpy(Player1PressUpp, "      ");
-			alt_up_video_dma_draw_string(vgachar, Player1PressUpp, 70,26, 1);
+			strcpy(AskPressDown, "       ");
+			alt_up_video_dma_draw_string(vgachar, AskPressDown, 70,20, 0);
+			alt_up_video_dma_draw_string(vgachar, AskPressDown, 70,22, 0);
+			alt_up_video_dma_draw_string(vgachar, AskPressDown, 70,24,0);
+			strcpy(Player1PressDown, "       ");
+			alt_up_video_dma_draw_string(vgachar, Player1PressDown, 70,28, 1);
 
 
 			/* Start count down */
@@ -1145,32 +1130,32 @@ void StartMultiPlayer(void* pdata){
 		 // Grow task
 
 	/* Ask player to press the 'up' button */
-	char AskPressUpp[20];
-	strcpy(AskPressUpp, "Ready?");
-	alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,20, 0);
-	strcpy(AskPressUpp, "Press");
-	alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,22, 0);
-	strcpy(AskPressUpp,"'Down!'");
-	alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,24,0);
+	char AskPressDown[20];
+	strcpy(AskPressDown, "Ready?");
+	alt_up_video_dma_draw_string(vgachar, AskPressDown, 70,20, 0);
+	strcpy(AskPressDown, "Press");
+	alt_up_video_dma_draw_string(vgachar, AskPressDown, 70,22, 0);
+	strcpy(AskPressDown,"'Down!'");
+	alt_up_video_dma_draw_string(vgachar, AskPressDown, 70,24,0);
 
 	/* If player is ready string */
-	char Player1PressUpp[20];
-	strcpy(Player1PressUpp, "Ready!");
+	char Player1PressDown[20];
+	strcpy(Player1PressDown, "Ready!");
 
 	while(1){
 		ALT_SEM_PEND(directions1_sem, 0);
 		/* If player is ready */
 		if (directions1 == 's' && directions2 == 'z'){
-			alt_up_video_dma_draw_string(vgachar, Player1PressUpp, 70,26, 1);
+			alt_up_video_dma_draw_string(vgachar, Player1PressDown, 70,28, 1);
 			OSTimeDlyHMSM(0, 0, 1, 0);
 
 			/* Clear words on screen */
-			strcpy(AskPressUpp, "       ");
-			alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,20, 0);
-			alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,22, 0);
-			alt_up_video_dma_draw_string(vgachar, AskPressUpp, 70,24,0);
-			strcpy(Player1PressUpp, "       ");
-			alt_up_video_dma_draw_string(vgachar, Player1PressUpp, 70,26, 1);
+			strcpy(AskPressDown, "        ");
+			alt_up_video_dma_draw_string(vgachar, AskPressDown, 70,20, 0);
+			alt_up_video_dma_draw_string(vgachar, AskPressDown, 70,22, 0);
+			alt_up_video_dma_draw_string(vgachar, AskPressDown, 70,24,0);
+			strcpy(Player1PressDown, "        ");
+			alt_up_video_dma_draw_string(vgachar, Player1PressDown, 70,28, 1);
 
 			/* Start count down */
 			char CountDown[5];
