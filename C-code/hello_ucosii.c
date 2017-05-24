@@ -810,10 +810,24 @@ void GenerateApple(void* pdata){
 	srand(time());
 	int xLocation = rand()% 28;
 
-	/* Set's the location in the struct and draw's the apple */
+	 //Set's the location in the struct and draw's the apple
+
 	a.x =  51+(xLocation*8);
 	a.y =  9+(yLocation*8);
 
+	while ((a.x == s1.loc[0].x && a.y == s1.loc[0].y) ||(a.x == s2.loc[0].x && a.y == s2.loc[0].y)){
+
+		/* Randomizer */
+		srand(time());
+		int yLocation = rand() % 28;
+		srand(time());
+		int xLocation = rand()% 28;
+
+		/* Set's the location in the struct and draw's the apple */
+
+		a.x =  51+(xLocation*8);
+		a.y =  9+(yLocation*8);
+	}
 	alt_up_pixel_buffer_dma_draw_box(vgapixel,a.x,a.y,a.x + 6,a.y+6,RED,RED);
 
 	printf("Appel created\n");
