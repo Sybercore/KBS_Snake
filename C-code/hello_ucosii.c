@@ -700,8 +700,6 @@ void MoveSnake(void* the_snake){
 
 		  	ALT_SEM_POST(directions1_sem);
 		  	ALT_SEM_POST(directions2_sem);
-		  	OSTaskDel(MOVE_SNAKE_PRIORITY+1);
-		  	OSTaskDel(OS_PRIO_SELF);
 		}
 		ALT_SEM_POST(directions1_sem);
 		ALT_SEM_POST(directions2_sem);
@@ -726,6 +724,26 @@ void GameOver(void* pdata){
 	/* Declare variables */
 	char i = 0, scorep1 = 0,scorep2 = 0;
 
+	/* Check who died */
+	if (directions1 == 'K'){
+		i = '2';
+	} else {
+		i = '1';
+	}
+
+	ALT_SEM_PEND(menu_sem, 0);
+	/* Reset variables */
+	if (menu_id == 1){
+		directions1 = 0;
+		OSTaskDel(MOVE_SNAKE_PRIORITY);
+	} else if (menu_id == 2){
+		directions1 = 0;
+		directions2 = 0;
+		OSTaskDel(MOVE_SNAKE_PRIORITY);
+		OSTaskDel(MOVE_SNAKE_PRIORITY+1);
+	}
+	ALT_SEM_POST(menu_sem);
+
 	/* Set score's */
 	if(menu_id == 1){
 		scorep1 = s1.length;
@@ -733,13 +751,6 @@ void GameOver(void* pdata){
 	if(menu_id == 2){
 		scorep1 = s1.length;
 		scorep2 = s2.length;
-	}
-
-	/* Check who died */
-	if (directions1 == 'K'){
-		i = '2';
-	} else {
-		i = '1';
 	}
 
 	/* Clear screen */
@@ -764,16 +775,6 @@ void GameOver(void* pdata){
 
 	snprintf(GameOverString, sizeof(GameOverString), "P1 score: %d", scorep1);
 	alt_up_video_dma_draw_string(vgachar, GameOverString, 35,40, 0);
-
-	ALT_SEM_PEND(menu_sem, 0);
-	/* Reset variables */
-	if (menu_id == 1){
-		directions1 = 0;
-	} else if (menu_id == 2){
-		directions1 = 0;
-		directions2 = 0;
-	}
-	ALT_SEM_POST(menu_sem);
 
 	OSTimeDlyHMSM(0,0,2,0);
 
