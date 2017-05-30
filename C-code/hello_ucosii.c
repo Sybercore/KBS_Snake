@@ -142,7 +142,6 @@ void ReadKeyboard(void* pdata){
 		if (RVALID){
 			/* Decoding byte */
 			byte = PS2_data & 0xFF;
-			//printf ("key: %d", byte);
 			ALT_SEM_PEND(menu_sem, 0);
 			if (menu_id == 0){
 				/* Main screen keys */
@@ -422,7 +421,6 @@ snake CreateSnake(int id){
 		new_snake.loc[0].y = 209;
 	}
 
-	printf("Snake %d created loc: %d %d\n",id, new_snake.loc[0].x, new_snake.loc[0].y);
 	return new_snake;
 }
 
@@ -566,7 +564,7 @@ void MoveSnake(void* the_snake){
 					TASK_STACKSIZE,
 					NULL,
 					0);
-			printf("Apple Eaten snake1 = %d\n", s1.length);
+
 			/* Make apple green */
 			alt_up_pixel_buffer_dma_draw_box(vgapixel,a.x,a.y,a.x + 6,a.y+6,GREEN,GREEN);
 
@@ -595,7 +593,6 @@ void MoveSnake(void* the_snake){
 					NULL,
 					0);
 
-			printf("Apple Eaten snake2 = %d\n", s2.length);
 			/* Make apple yellow */
 			alt_up_pixel_buffer_dma_draw_box(vgapixel,a.x,a.y,a.x + 6,a.y+6,YELLOW,YELLOW);
 
@@ -830,7 +827,6 @@ void GenerateApple(void* pdata){
 	}
 	alt_up_pixel_buffer_dma_draw_box(vgapixel,a.x,a.y,a.x + 6,a.y+6,RED,RED);
 
-	printf("Appel created\n");
 	ALT_SEM_POST(apple_loc_sem);
 	OSTaskDel(OS_PRIO_SELF);
 }
